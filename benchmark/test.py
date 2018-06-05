@@ -6,7 +6,7 @@ import time
 
 if __name__ == "__main__":
     scripts = ['aos', 'soa', 'aosoa']
-    modes = ['force', 'update']
+    modes = ['force']#, 'update']
 
     for script in scripts:
         os.system('rm ' + script)

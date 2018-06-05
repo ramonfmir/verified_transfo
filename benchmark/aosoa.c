@@ -17,6 +17,8 @@ typedef struct {
   double x[BLOCK_SIZE];
   double y[BLOCK_SIZE];
   double z[BLOCK_SIZE];
+  //int cold_fields[10 * BLOCK_SIZE];
+  // Here the cold fields could be somewhere else
 } particle_block;
 
 particle_block *data;
@@ -28,19 +30,19 @@ int main(int argc, char **argv) {
 
   // Push all particles in one direction.
   if (strcmp(mode, "force") == 0) {
-    for (int i = 0; i < NUM_PARTICLES / BLOCK_SIZE; i++) {
+    for (long i = 0; i < NB_BLOCKS; i++) {
       double *x = data[i].x;
       double *y = data[i].y;
       double *z = data[i].z;
 
-      for (int j = 0; j < BLOCK_SIZE; j++) {
+      for (long j = 0; j < BLOCK_SIZE; j++) {
         x[j] += FORCE_X;
       }
-      for (int j = 0; j < BLOCK_SIZE; j++) {
-        y[j] = y[j] + FORCE_Y;
+      for (long j = 0; j < BLOCK_SIZE; j++) {
+        y[j] += FORCE_Y;
       }
-      for (int j = 0; j < BLOCK_SIZE; j++) {
-        z[j] = z[j] + FORCE_Z;
+      for (long j = 0; j < BLOCK_SIZE; j++) {
+        z[j] += FORCE_Z;
       }
     }
   // Update each individual particle.

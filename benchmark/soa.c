@@ -15,6 +15,7 @@ typedef struct {
   double *x;
   double *y;
   double *z;
+  int *cold_fields;
 } particles;
 
 particles data;
@@ -25,16 +26,17 @@ int main(int argc, char **argv) {
   data.x = (double *) malloc(sizeof(double) * NUM_PARTICLES);
   data.y = (double *) malloc(sizeof(double) * NUM_PARTICLES);
   data.z = (double *) malloc(sizeof(double) * NUM_PARTICLES);
+  data.cold_fields = (int *) malloc(sizeof(int) * 10 * NUM_);
 
   // Push all particles in one direction.
   if (strcmp(mode, "force") == 0) {
-    for (int i = 0; i < NUM_PARTICLES; i++) {
+    for (long i = 0; i < NUM_PARTICLES; i++) {
       data.x[i] += FORCE_X;
     }
-    for (int i = 0; i < NUM_PARTICLES; i++) {
+    for (long i = 0; i < NUM_PARTICLES; i++) {
       data.y[i] += FORCE_Y;
     }
-    for (int i = 0; i < NUM_PARTICLES; i++) {
+    for (long i = 0; i < NUM_PARTICLES; i++) {
       data.z[i] += FORCE_Z;
     }
   // Update each individual particle.
