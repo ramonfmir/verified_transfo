@@ -9,13 +9,13 @@ if __name__ == "__main__":
     modes = ['force']#, 'update']
 
     for script in scripts:
-        os.system('rm ' + script)
-        os.system('gcc -Wall -O3 -o ' + script + ' ' + script +'.c')
+        os.system('rm bin/' + script)
+        os.system('gcc -Wall -O3 -o bin/' + script + ' ' + script +'.c')
 
     for mode in modes:
         print('')
         for script in scripts:
             start = time.time()
-            os.system('./' + script + ' ' + mode)
+            os.system('./bin/' + script + ' ' + mode)
             end = time.time()
             print(script + ' ' + mode + ': %.02f' % (end - start))
