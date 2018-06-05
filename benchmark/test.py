@@ -6,7 +6,7 @@ import time
 
 if __name__ == "__main__":
     scripts = ['aos', 'soa', 'aosoa']
-    modes = ['populate']#['apply_action', 'populate']
+    modes = ['apply_action', 'populate']
 
     for script in scripts:
         os.system('rm bin/' + script)

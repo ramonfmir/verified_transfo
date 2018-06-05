@@ -1,11 +1,13 @@
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
-#define NUM_PARTICLES 134217728
-#define BLOCK_SIZE 4096
-#define NB_BLOCKS (NUM_PARTICLES / BLOCK_SIZE)
+// Note that the blocks here are used differenty.
+#define NUM_PARTICLES 134217728 // 2^27
+#define BLOCK_SIZE 128 // 2^7
+#define NB_BLOCKS 1048576 // 2^20
 
-#define DENSITY 0.25
+#define DENSITY 0.2
 
 #define K1 1.33
 #define K2 3.07
@@ -27,11 +29,13 @@ typedef struct {
 } particle_block;
 
 particle_block *data;
+int *counts;
 
 int main(int argc, char **argv) {
   char *mode = argv[1];
 
-  data = (particle_block *) malloc(sizeof(particle_block) * NB_BLOCKS);
+  data = (particle_block *) calloc(NB_BLOCKS, sizeof(particle_block));
+  counts = (int *) calloc(NB_BLOCKS, sizeof(int));
 
   // Do something to all particles.
   if (strcmp(mode, "apply_action") == 0) {
@@ -48,10 +52,29 @@ int main(int argc, char **argv) {
     }
   // Populate the scene with particles in random positions.
   } else if (strcmp(mode, "populate") == 0) {
+    srand(time(NULL));
+    for (int i = 0; i < NUM_PARTICLES * DENSITY; ) {
+      int block_index = rand() % NB_BLOCKS;
+      int *count = &(counts[block_index]);
+      if (*count < BLOCK_SIZE) {
+        data[block_index].x[*count]  = (float) rand();
+        data[block_index].y[*count]  = (float) rand();
+        data[block_index].z[*count]  = (float) rand();
+        data[block_index].vx[*count] = (float) rand();
+        data[block_index].vy[*count] = (float) rand();
+        data[block_index].vz[*count] = (float) rand();
+        data[block_index].c[*count]  = (float) rand();
+        data[block_index].m[*count]  = (float) rand();
+        data[block_index].v[*count]  = (float) rand();
 
+        *count = *count + 1;
+        i++;
+      }
+    }
   }
 
   free(data);
+  free(counts);
 
   return 0;
 }

@@ -9,7 +9,7 @@
 #define K1 1.33
 #define K2 3.07
 
-#define DENSITY 0.25
+#define DENSITY 0.2
 
 typedef struct {
   // Position
@@ -39,22 +39,22 @@ int main(int argc, char **argv) {
       data[i].z += data[i].vz * K2;
     }
   // Populate the scene with particles in random positions.
-} else if (strcmp(mode, "populate") == 0) {
+  } else if (strcmp(mode, "populate") == 0) {
     srand(time(NULL));
     for (int i = 0; i < NUM_PARTICLES * DENSITY; ) {
       int block_index = rand() % NB_BLOCKS;
       int *count = &(counts[block_index]);
       if (*count < BLOCK_SIZE) {
         int index = block_index + *count;
-        data[index].x = (float) rand();
-        data[index].y = (float) rand();
-        data[index].z = (float) rand();
+        data[index].x  = (float) rand();
+        data[index].y  = (float) rand();
+        data[index].z  = (float) rand();
         data[index].vx = (float) rand();
         data[index].vy = (float) rand();
         data[index].vz = (float) rand();
-        data[index].c = (float) rand();
-        data[index].m = (float) rand();
-        data[index].v = (float) rand();
+        data[index].c  = (float) rand();
+        data[index].m  = (float) rand();
+        data[index].v  = (float) rand();
 
         *count = *count + 1;
         i++;
@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
   }
 
   free(data);
+  free(counts);
 
   return 0;
 }

@@ -9,7 +9,7 @@
 #define K1 1.33
 #define K2 3.07
 
-#define DENSITY 0.25
+#define DENSITY 0.2
 
 typedef struct {
   // Position
@@ -66,15 +66,15 @@ int main(int argc, char **argv) {
 
       if (*count < BLOCK_SIZE) {
         int index = block_index + *count;
-        data.x[index] = (float) rand();
-        data.y[index] = (float) rand();
-        data.z[index] = (float) rand();
+        data.x[index]  = (float) rand();
+        data.y[index]  = (float) rand();
+        data.z[index]  = (float) rand();
         data.vx[index] = (float) rand();
         data.vy[index] = (float) rand();
         data.vz[index] = (float) rand();
-        data.c[index] = (float) rand();
-        data.m[index] = (float) rand();
-        data.v[index] = (float) rand();
+        data.c[index]  = (float) rand();
+        data.m[index]  = (float) rand();
+        data.v[index]  = (float) rand();
         *count = *count + 1;
         i++;
       }
