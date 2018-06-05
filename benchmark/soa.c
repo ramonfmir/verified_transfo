@@ -1,15 +1,15 @@
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
-#define NUM_PARTICLES 134217728
+#define NUM_PARTICLES 134217728 // 2^27
+#define BLOCK_SIZE 128 // 2^7
+#define NB_BLOCKS 1048576 // 2^20
 
-#define FORCE_X 1.0
-#define FORCE_Y 2.5
-#define FORCE_Z 0.3
+#define K1 1.33
+#define K2 3.07
 
-#define VALUE_X 6.2
-#define VALUE_Y 2.7
-#define VALUE_Z 1.1
+#define DENSITY 0.25
 
 typedef struct {
   // Position
@@ -25,6 +25,8 @@ typedef struct {
   // Mass, volume (unused)
   float *m;
   float *v;
+  // Counts, used for populating
+  int *counts;
 } particles;
 
 particles data;
@@ -32,28 +34,51 @@ particles data;
 int main(int argc, char **argv) {
   char *mode = argv[1];
 
-  data.x  = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.y  = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.z  = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.vx = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.vy = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.vz = (float *) malloc(sizeof(float) * NUM_PARTICLES);
-  data.c  = (float *) malloc(sizeof(float) * NUM_PARTICLES);
+  data.x  = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.y  = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.z  = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.vx = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.vy = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.vz = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.c  = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.m  = (float *) calloc(NUM_PARTICLES, sizeof(float));
+  data.v  = (float *) calloc(NUM_PARTICLES, sizeof(float));
 
-  // Push all particles in one direction.
-  if (strcmp(mode, "force") == 0) {
+  data.counts = (int *) calloc(NB_BLOCKS, sizeof(int));
+
+  // Do something to all particles.
+  if (strcmp(mode, "apply_action") == 0) {
     for (long i = 0; i < NUM_PARTICLES; i++) {
       data.x[i] += data.vx[i];
     }
     for (long i = 0; i < NUM_PARTICLES; i++) {
-      data.y[i] += data.vy[i] + FORCE_Y * data.c[i];
+      data.y[i] += data.vy[i] + K1 * data.c[i];
     }
     for (long i = 0; i < NUM_PARTICLES; i++) {
-      data.z[i] += data.vz[i] * FORCE_Z;
+      data.z[i] += data.vz[i] * K2;
     }
-  // Push individual particles.
-  } else if (strcmp(mode, "update") == 0) {
+  // Populate the scene with particles in random positions.
+  } else if (strcmp(mode, "populate") == 0) {
+    srand(time(NULL));
+    for (int i = 0; i < NUM_PARTICLES * DENSITY; ) {
+      int block_index = rand() % NB_BLOCKS;
+      int *count = &(data.counts[block_index]);
 
+      if (*count < BLOCK_SIZE) {
+        int index = block_index + *count;
+        data.x[index] = (float) rand();
+        data.y[index] = (float) rand();
+        data.z[index] = (float) rand();
+        data.vx[index] = (float) rand();
+        data.vy[index] = (float) rand();
+        data.vz[index] = (float) rand();
+        data.c[index] = (float) rand();
+        data.m[index] = (float) rand();
+        data.v[index] = (float) rand();
+        *count = *count + 1;
+        i++;
+      }
+    }
   }
 
   free(data.x);
@@ -63,6 +88,7 @@ int main(int argc, char **argv) {
   free(data.vy);
   free(data.vz);
   free(data.c);
+  free(data.counts);
 
   return 0;
 }

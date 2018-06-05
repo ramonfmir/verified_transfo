@@ -5,13 +5,10 @@
 #define BLOCK_SIZE 4096
 #define NB_BLOCKS (NUM_PARTICLES / BLOCK_SIZE)
 
-#define FORCE_X 1.0
-#define FORCE_Y 2.5
-#define FORCE_Z 0.3
+#define DENSITY 0.25
 
-#define VALUE_X 6.2
-#define VALUE_Y 2.7
-#define VALUE_Z 1.1
+#define K1 1.33
+#define K2 3.07
 
 typedef struct {
   // Position
@@ -29,7 +26,6 @@ typedef struct {
   float v[BLOCK_SIZE];
 } particle_block;
 
-
 particle_block *data;
 
 int main(int argc, char **argv) {
@@ -37,21 +33,21 @@ int main(int argc, char **argv) {
 
   data = (particle_block *) malloc(sizeof(particle_block) * NB_BLOCKS);
 
-  // Push all particles in one direction.
-  if (strcmp(mode, "force") == 0) {
+  // Do something to all particles.
+  if (strcmp(mode, "apply_action") == 0) {
     for (int i = 0; i < NB_BLOCKS; i++) {
       for (int j = 0; j < BLOCK_SIZE; j++) {
         data[i].x[j] += data[i].vx[j];
       }
       for (int j = 0; j < BLOCK_SIZE; j++) {
-        data[i].y[j] += data[i].vy[j] + FORCE_Y * data[i].c[j];
+        data[i].y[j] += data[i].vy[j] + K1 * data[i].c[j];
       }
       for (int j = 0; j < BLOCK_SIZE; j++) {
-        data[i].z[j] += data[i].vz[j] * FORCE_Z;
+        data[i].z[j] += data[i].vz[j] * K2;
       }
     }
-  // Push individual particles.
-  } else if (strcmp(mode, "update") == 0) {
+  // Populate the scene with particles in random positions.
+  } else if (strcmp(mode, "populate") == 0) {
 
   }
 
