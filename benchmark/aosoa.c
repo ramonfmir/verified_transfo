@@ -2,7 +2,7 @@
 #include <string.h>
 
 #define NUM_PARTICLES 134217728
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 4096
 #define NB_BLOCKS (NUM_PARTICLES / BLOCK_SIZE)
 
 #define FORCE_X 1.0
@@ -14,12 +14,21 @@
 #define VALUE_Z 1.1
 
 typedef struct {
-  double x[BLOCK_SIZE];
-  double y[BLOCK_SIZE];
-  double z[BLOCK_SIZE];
-  //int cold_fields[10 * BLOCK_SIZE];
-  // Here the cold fields could be somewhere else
+  // Position
+  float x[BLOCK_SIZE];
+  float y[BLOCK_SIZE];
+  float z[BLOCK_SIZE];
+  // Velocity
+  float vx[BLOCK_SIZE];
+  float vy[BLOCK_SIZE];
+  float vz[BLOCK_SIZE];
+  // Charge
+  float c[BLOCK_SIZE];
+  // Mass, volume (unused)
+  float m[BLOCK_SIZE];
+  float v[BLOCK_SIZE];
 } particle_block;
+
 
 particle_block *data;
 
@@ -30,34 +39,20 @@ int main(int argc, char **argv) {
 
   // Push all particles in one direction.
   if (strcmp(mode, "force") == 0) {
-    for (long i = 0; i < NB_BLOCKS; i++) {
-      double *x = data[i].x;
-      double *y = data[i].y;
-      double *z = data[i].z;
-
-      for (long j = 0; j < BLOCK_SIZE; j++) {
-        x[j] += FORCE_X;
-      }
-      for (long j = 0; j < BLOCK_SIZE; j++) {
-        y[j] += FORCE_Y;
-      }
-      for (long j = 0; j < BLOCK_SIZE; j++) {
-        z[j] += FORCE_Z;
-      }
-    }
-  // Update each individual particle.
-  } else if (strcmp(mode, "update") == 0) {
-    for (int i = 0; i < NUM_PARTICLES / BLOCK_SIZE; i++) {
-      double *x = data[i].x;
-      double *y = data[i].y;
-      double *z = data[i].z;
-
+    for (int i = 0; i < NB_BLOCKS; i++) {
       for (int j = 0; j < BLOCK_SIZE; j++) {
-        x[j] = VALUE_X;
-        y[j] = VALUE_Y;
-        z[j] = VALUE_Z;
+        data[i].x[j] += data[i].vx[j];
+      }
+      for (int j = 0; j < BLOCK_SIZE; j++) {
+        data[i].y[j] += data[i].vy[j] + FORCE_Y * data[i].c[j];
+      }
+      for (int j = 0; j < BLOCK_SIZE; j++) {
+        data[i].z[j] += data[i].vz[j] * FORCE_Z;
       }
     }
+  // Push individual particles.
+  } else if (strcmp(mode, "update") == 0) {
+
   }
 
   free(data);

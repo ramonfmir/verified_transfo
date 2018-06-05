@@ -2,8 +2,6 @@
 #include <string.h>
 
 #define NUM_PARTICLES 134217728
-#define BUCKET_SIZE 128
-#define NUM_BUCKETS (NUM_PARTICLES / BUCKET_SIZE)
 
 #define FORCE_X 1.0
 #define FORCE_Y 2.5
@@ -14,38 +12,33 @@
 #define VALUE_Z 1.1
 
 typedef struct {
-  double x, y, z;
-  int cold_fields[10];
+  // Position
+  float x, y, z;
+  // Velocity
+  float vx, vy, vz;
+  // Charge
+  float c;
+  // Mass, volume (unused)
+  float m, v;
 } particle;
 
-typedef struct {
-  int bid;
-  particle items[BUCKET_SIZE];
-} bucket;
-
-bucket *data;
+particle *data;
 
 int main(int argc, char **argv) {
   char *mode = argv[1];
 
-  data = (bucket *) malloc(sizeof(bucket) * NUM_BUCKETS);
+  data = (particle *) malloc(sizeof(particle) * NUM_PARTICLES);
 
   // Push all particles in one direction.
   if (strcmp(mode, "force") == 0) {
-    for (long i = 0; i < NUM_BUCKETS; i++) {
-      for (long j = 0; j < BUCKET_SIZE; j++) {
-        data[i].items[j].x += FORCE_X;
-        data[i].items[j].y += FORCE_Y;
-        data[i].items[j].z += FORCE_Z;
-      }
+    for (int i = 0; i < NUM_PARTICLES; i++) {
+      data[i].x += data[i].vx;
+      data[i].y += data[i].vy + FORCE_Y * data[i].c;
+      data[i].z += data[i].vz * FORCE_Z;
     }
-  // Update each individual particle.
+  // Push individual particle.
   } else if (strcmp(mode, "update") == 0) {
-    /*for (int i = 0; i < NUM_PARTICLES; i++) {
-      data[i].x = VALUE_X;
-      data[i].y = VALUE_Y;
-      data[i].z = VALUE_Z;
-    }*/
+
   }
 
   free(data);
