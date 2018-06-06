@@ -2,9 +2,9 @@
 #include <time.h>
 #include <string.h>
 
-#define NUM_PARTICLES 134217728 // 2^27
-#define BLOCK_SIZE 128 // 2^7
-#define NB_BLOCKS 1048576 // 2^20
+#define NUM_PARTICLES (1 << 27) // 2^27
+#define BLOCK_SIZE (1 << 12) // 2^12
+#define NB_BLOCKS (1 << 15) // 2^15
 
 #define K1 1.33
 #define K2 3.07
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         data[index].m  = (float) rand();
         data[index].v  = (float) rand();
 
-        *count = *count + 1;
+        (*count)++;
         i++;
       }
     }
