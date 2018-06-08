@@ -1,7 +1,7 @@
-# Created by https://www.gitignore.io/api/c,macos
-
 ### Project specific ###
 benchmark/bin/*
+
+# Created by https://www.gitignore.io/api/c,coq,macos
 
 ### C ###
 # Prerequisites
@@ -57,9 +57,38 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+### Coq ###
+.*.aux
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.cmxs
+*.glob
+*.ml.d
+*.ml4.d
+*.mli.d
+*.mllib.d
+*.mlpack.d
+*.native
+*.v.d
+*.vio
+*.vo
+.coq-native/
+.csdp.cache
+.lia.cache
+.nia.cache
+.nlia.cache
+.nra.cache
+csdp.cache
+lia.cache
+nia.cache
+nlia.cache
+nra.cache
+
 ### macOS ###
 *.DS_Store
-*.icloud
 .AppleDouble
 .LSOverride
 
@@ -86,4 +115,4 @@ Temporary Items
 .apdisk
 
 
-# End of https://www.gitignore.io/api/c,macos
+# End of https://www.gitignore.io/api/c,coq,macos
