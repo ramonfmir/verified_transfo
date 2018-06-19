@@ -1,6 +1,8 @@
 ### Project specific ###
 benchmark/bin/*
 src/_CoqProject
+*[#]*[#]
+*[#]*
 
 
 # Created by https://www.gitignore.io/api/c,coq,macos
