@@ -144,55 +144,55 @@ Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
       tr_trm gt t1 t1' ->
       tr_trm gt t2 t2' ->
       tr_trm gt (trm_let x t1 t2) (trm_let x t1' t2')
-  | tr_trm_binop : forall t1 t2 t1' t2',
-      tr_trm gt t1 t1' ->
-      tr_trm gt t2 t2' ->
-      tr_trm gt (trm_app binop_add (t1::t2::nil)) (trm_app binop_add (t1'::t2'::nil))
+  | tr_trm_binop : forall v1 v2 v1' v2' r,
+      tr_val gt v1 v1' ->
+      tr_val gt v2 v2' ->
+      r = (trm_app binop_add ((trm_val v1')::(trm_val v2')::nil)) ->
+      tr_trm gt (trm_app binop_add ((trm_val v1)::(trm_val v2)::nil)) r
   (* Abstract heap operations *)
-  | tr_trm_get : forall T p p',
-      tr_trm gt p p' ->
-      tr_trm gt (trm_app (prim_get T) (p::nil)) (trm_app (prim_get T) (p'::nil))
-  | tr_trm_set : forall T p p' t t',
-      tr_trm gt p p' ->
-      tr_trm gt t t' ->
-      tr_trm gt (trm_app (prim_set T) (p::t::nil)) (trm_app (prim_set T) (p'::t'::nil))
-  | tr_trm_new : forall T t t',
-      tr_trm gt t t' ->
-      tr_trm gt (trm_app (prim_new T) (t::nil)) (trm_app (prim_new T) (t'::nil))
-  | tr_trm_array_access : forall A t i t' i' r,
-      tr_trm gt t t' ->
-      tr_trm gt i i' ->
-      r = trm_app (prim_array_access A) (t'::i'::nil) ->
-      tr_trm gt (trm_app (prim_array_access A) (t::i::nil)) r
+  | tr_trm_get : forall T v v' r,
+      tr_val gt v v' ->
+      r = (trm_app (prim_get T) ((trm_val v')::nil)) ->
+      tr_trm gt (trm_app (prim_get T) ((trm_val v)::nil)) r
+  | tr_trm_set : forall T v1 v1' v2 v2' r,
+      tr_val gt v1 v1' ->
+      tr_val gt v2 v2' ->
+      r = (trm_app (prim_set T) ((trm_val v1')::(trm_val v2')::nil)) ->
+      tr_trm gt (trm_app (prim_set T) ((trm_val v1)::(trm_val v2)::nil)) r
+  | tr_trm_new : forall T v v' r,
+      tr_val gt v v' ->
+      r = (trm_app (prim_new T) ((trm_val v')::nil)) ->
+      tr_trm gt (trm_app (prim_new T) ((trm_val v)::nil)) r
+  | tr_trm_array_access : forall A v1 v2 v1' v2' r,
+      tr_val gt v1 v1' ->
+      tr_val gt v2 v2' ->
+      r = trm_app (prim_array_access A) ((trm_val v1')::(trm_val v2')::nil) ->
+      tr_trm gt (trm_app (prim_array_access A) ((trm_val v1)::(trm_val v2)::nil)) r
   (* Special case: struct access *)
-  | tr_trm_struct_access_x : forall p p' s s_g f f_g a1 a2 r,
-      tr_trm gt p p' ->
-      s = group_tr_struct_name gt ->
-      s_g = group_tr_new_struct_name gt ->
-      f \in (group_tr_fields gt) ->
-      f_g = group_tr_new_struct_field gt ->
-      a1 = prim_struct_access s_g f ->
-      a2 = prim_struct_access s f_g ->
-      r = trm_app a1 ((trm_app a2 (p'::nil))::nil) ->
-      tr_trm gt (trm_app (prim_struct_access s f) (p::nil)) r
-  | tr_trm_struct_access_other : forall s p p' T f r,
-      tr_trm gt p p' -> 
-      s = group_tr_struct_name gt ->
-      (T <> s \/ f \notin (group_tr_fields gt)) ->       
-      r = (trm_app (prim_struct_access T f) (p'::nil)) ->
-      tr_trm gt (trm_app (prim_struct_access T f) (p::nil)) r.
+  | tr_trm_struct_access_x : forall v v' Tt Tg fs f fg a1 a2 r,
+      tr_val gt v v' ->
+      gt = make_group_tr Tt fs Tg fg ->
+      f \in fs ->
+      a1 = prim_struct_access Tg f ->
+      a2 = prim_struct_access Tt fg ->
+      r = trm_app a1 ((trm_app a2 ((trm_val v')::nil))::nil) ->
+      tr_trm gt (trm_app (prim_struct_access Tt f) ((trm_val v)::nil)) r
+  | tr_trm_struct_access_other : forall Tt v v' T f r,
+      tr_val gt v v' -> 
+      Tt = group_tr_struct_name gt ->
+      (T <> Tt \/ f \notin (group_tr_fields gt)) ->       
+      r = (trm_app (prim_struct_access T f) ((trm_val v')::nil)) ->
+      tr_trm gt (trm_app (prim_struct_access T f) ((trm_val v)::nil)) r
   (* Args *)
-  (*| tr_trm_args_1 : forall op t t' ts,
+  | tr_trm_args_1 : forall op t t' ts,
       ~ is_val t ->
       tr_trm gt t t' ->
       tr_trm gt (trm_app op (t::ts)) (trm_app op (t'::ts))
   | tr_trm_args_2 : forall op v v' t t' ts,
-      is_val v ->
-      is_val v' ->
       ~ is_val t ->
-      tr_trm gt v v' ->
+      tr_val gt v v' ->
       tr_trm gt t t' ->
-      tr_trm gt (trm_app op (v::t::ts)) (trm_app op (v'::t'::ts)).*)
+      tr_trm gt (trm_app op ((trm_val v)::t::ts)) (trm_app op ((trm_val v')::t'::ts)).
 
 Lemma index_of_index_length' : forall A (l' l : list A) i,
   index l' i ->
@@ -242,20 +242,21 @@ Proof.
   { admit. } (* extens lemma for maps *)
 Admitted.
 
+Hint Resolve functional_tr_val.
+
 Theorem functional_tr_trm : forall gt t t1 t2,
   tr_trm gt t t1 ->
   tr_trm gt t t2 ->
   t1 = t2.
 Proof.
   introv H1 H2. gen t2. induction H1; intros;
-  try solve [ inverts H2 ; try subst ; repeat fequals* ].
-  { inverts H2. fequals. applys* functional_tr_val. }
-  { inverts* H7.
-    { forwards*: IHtr_trm H11. subst*. } 
-    { inverts H14; tryfalse. } }
-  { inverts* H3. 
-    { inverts H0; tryfalse. }
-    { forwards*: IHtr_trm H7. subst*. } }
+  try solve [ inverts* H2 as ; introv HN ; forwards*: HN ];
+  try solve [ inverts* H2 as ; intros ; subst* ; 
+  repeat fequals* ; simpls ; contradiction ].
+  { subst. inverts H5; repeat fequals; simpls*; 
+    try contradiction; inverts* H8; contradiction. }
+  { subst. inverts H3; repeat fequals; simpls*;
+    try contradiction; inverts* H1; contradiction.  }
 Qed.
 
 Theorem functional_tr_stack : forall gt S S1 S2,
@@ -360,8 +361,6 @@ Proof.
     try solve [ intros ; false ].
     { (* one of the fields to group *) 
       introv HD1 Hgt HD2 HD3 Hsg Hfs HB Ha Hin.
-(*  sets_eq Gtn: (group_tr_struct_name gt).
-subst gt. simpls.*)
       rewrite* Hgt in Hin. simpls.
       forwards Hsf: Hsg Hin.
       forwards Heq: read_of_binds H. 
@@ -380,9 +379,7 @@ subst gt. simpls.*)
       forwards (w'&Hw'&HR'): IHHR Hsf Ha.
       exists w'. splits*. constructors*. 
       applys* binds_of_indom_read.
-      rewrite HD3. rew_set*.
-(*   left*. applys* in_union. 
-      left. applys* in_setminus. *) }
+      rewrite HD3. rew_set*. }
     { (* another struct *)
       intros Hn HD Hfs Ha Hor. 
       forwards Hidx: index_of_binds H. typeclass.
@@ -395,6 +392,10 @@ subst gt. simpls.*)
       rewrite <- HD. 
       rewrite* <- index_eq_indom. } }
 Qed.
+
+(*Ltac rew_dom_at_core tt := repeat rewrite dom_update_at_indom.
+        Tactic Notation "rew_dom_at" := rew_dom_at_core tt.
+        Tactic Notation "rew_dom_at" "*" := rew_dom_at; auto_star.*)
 
 Lemma tr_write_accesses : forall v1 w gt π v1' π' w' v2,
   tr_val gt v1 v1' ->
@@ -442,9 +443,6 @@ Proof.
         applys tr_val_struct_group (sg[f:=v2']); try reflexivity; 
         repeat rewrite dom_update_at_indom; try typeclass;
         try solve [ applys* in_subset ].
-        (*Ltac rew_dom_at_core tt := repeat rewrite dom_update_at_indom.
-        Tactic Notation "rew_dom_at" := rew_dom_at_core tt.
-        Tactic Notation "rew_dom_at" "*" := rew_dom_at; auto_star.*)
         { forwards*: indom_of_binds HB. }
         { introv HD4. repeat rewrite read_update. case_if*. }
         { introv HD4 HD5. repeat rewrite read_update. 
@@ -558,15 +556,16 @@ Proof.
     exists* vr' m3'. }
   { (* binop *)
     inverts Ht as Ht1 Ht2.
-    inverts H. exists (n1 + n2)%Z m1'. 
-    inverts Ht1 as Ht1. inverts Ht2 as Ht2.
+    inverts H. 2: forwards*: Ht1. 2: forwards*: Ht1. 
+    exists (n1 + n2)%Z m1'. 
     splits*. constructors*. 
     inverts Ht1. inverts Ht2. constructors*. }
   { (* get *)
-    inverts Ht as Hp. inverts Hm1 as HD Htrm.
-    inverts H0 as Hb Ha. forwards Hi: index_of_binds Hb.
-    typeclass. forwards Htrml: Htrm Hi.
-    subst_hyp H. inverts Hp as Hp. inverts Hp.
+    inverts Ht as Hp. 2: { subst. forwards*: Hp. } 
+    inverts Hm1 as HD Htrm. 
+    inverts H0 as Hb Ha. forwards* Hi: index_of_binds Hb.
+    forwards Htrml: Htrm Hi.
+    inverts Hp as Hp. inverts Hp.
     forwards: read_of_binds Hb. subst_hyp H.
     forwards (w'&Hw'&Ha'): tr_read_accesses Htrml H2 Ha.
     exists w' m1'. splits*. 
