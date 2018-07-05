@@ -556,7 +556,7 @@ Proof.
     exists* vr' m3'. }
   { (* binop *)
     inverts Ht as Ht1 Ht2.
-    inverts H. 2: forwards*: Ht1. 2: { forwards*: Ht1. } 
+    inverts H. 2: forwards*: Ht1.
     exists (n1 + n2)%Z m1'. 
     splits*. constructors*. 
     inverts Ht1. inverts Ht2. constructors*. }
@@ -592,7 +592,6 @@ Proof.
     { constructors*. applys* not_tr_val_error.
       constructors*. applys* binds_of_indom_read.
       rewrite <- HD at 1. forwards*: indom_of_binds Hb. }
-    { forwards*: Ha. }
     { forwards*: Ha. } }
   { (* new *) 
     inverts Ht as Hv. 
@@ -633,13 +632,38 @@ Proof.
     inverts Hm1 as HD Htrm.
     exists (val_abstract_ptr l (π'++(access_array i::nil))) m1'. 
     splits; constructors*. applys* tr_accesses_app.
-    { forwards*: Ht. } 
-    { forwards*: Ht. } }
+    { forwards*: Ht. }  }
   { (* args_1 *) 
     inverts Ht; try solve [ forwards*: H ].
     forwards* (v'&m2'&Hv'&Hm2'&HR'): IHHR1. 
     { admit. }
+    inverts HR2.
+    { inverts H6. inverts Hv'. forwards* (v''&m3'&Hv''&Hm3'&HR''): IHHR2.
+      exists v'' m3'. splits*. applys* red_args_1. applys* not_is_val_tr. }
+    { forwards* (v''&m3'&Hv''&Hm3'&HR''): IHHR2. exists v'' m3'. splits*.
+      applys* red_args_1. applys* not_is_val_tr. }
+
+    { (*inverts H6. inverts Hv'. forwards* (v''&m3'&Hv''&Hm3'&HR''): IHHR2.
+      { tests CT: (T = (group_tr_struct_name gt)).
+          { tests Cf: (f \in (group_tr_fields gt)).
+            { admit. }
+            { applys* tr_trm_struct_access_other. } }
+          { constructors*. } }
+      { exists v'' m3'. splits*. constructors*. applys* not_is_val_tr. }*) admit. }
+
+    { forwards*: H7. }
+
+    { forwards*: He. unfolds*. }
+    { forwards*: He. unfolds*. }
+    { forwards*: He. unfolds*. }
+    { forwards*: He. unfolds*. }
+   (*
+      exists v'' m3'. splits*. applys* red_args_1. applys* not_is_val_tr. }
+
+
     forwards* (v''&m3'&Hv''&Hm3'&HR''): IHHR2.
+    {  }
+
     { inverts* HR2; try solve [ forwards*: He ; unfolds* ].
         { inverts H6. inverts Hv'. applys* tr_trm_get. }
         { inverts H6. inverts Hv'. tests CT: (T = (group_tr_struct_name gt)).
@@ -648,7 +672,7 @@ Proof.
             { applys* tr_trm_struct_access_other. } }
           { applys* tr_trm_struct_access_other. } } } } }
     exists v'' m3'. splits*. constructors*.
-    applys* not_is_val_tr. }
+    applys* not_is_val_tr.*) }
   { (* args_2 *) 
     admit. }
 Qed.
