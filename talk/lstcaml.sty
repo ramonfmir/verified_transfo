@@ -1,0 +1,260 @@
+
+\def\mytilde{\kern -.15em\lower .6ex\hbox{\~{}}\kern .04em}
+
+
+\lstdefinelanguage{MyCaml}{ 
+% Anything betweeen $ becomes LaTeX math mode
+mathescape=true,
+%
+% Comments may or not include Latex commands
+texcl=false, 
+%
+%
+% Vernacular commands
+morekeywords=[1]{
+and,
+as,
+assert,
+asr,
+begin,
+class,
+closed,
+constraint,
+do,
+done,
+downto,
+else,
+end,
+external,
+false,
+for,
+fun,
+function,
+functor,
+if,
+in,
+include,
+inherit,
+land,
+lazy,
+let,
+lor,
+lsl,
+lsr,
+lxor,
+match,
+method,
+mod,
+module,
+mutable,
+new,
+not,
+object,
+of,
+open,
+or,
+parser,
+private,
+rec,
+repeat,
+sig,
+struct,
+then,
+to,
+true,
+try,
+type,
+val,
+virtual,
+when,
+while,
+with,
+->,
+<-,
+(),
+[],
+},
+%
+% Gallina
+morekeywords=[2]{
+',
+,,
+`,
+_,
+.,
+..,
+?,
+??,
+:,
+::,
+^;,
+^;;,
+->,
+<-,
+.(,
+.[,
+(,
+),
+[,
+],
+{<,
+>},
+[|,
+|],
+[<,
+>],
+{,
+},
+~,
+=,
+==,
+<,
+>,
+<=,
+>=,
+<>,
+&,
+&&,
+|,
+||,
++,
+-,
+*,
+/,
++.,
+-.,
+*.,
+/.,
+**,
+!,
+:=,
+^^,
+},
+%
+% Sorts
+morekeywords=[3]{
+Arg,
+Array,
+Bigarray,
+Buffer,
+Callback,
+Char,
+Complex,
+Digest,
+Filename,
+Format,
+Gc,
+Genlex,
+Graphics,
+Hashtbl,
+Int32,
+Int64,
+Lazy,
+Lexing,
+List,
+Map,
+Marshal,
+Nativeint,
+Oo,
+Parsing,
+Printexc,
+Printf,
+Queue,
+Random,
+Ref,
+Scanf,
+Set,
+Sort,
+Stack,
+StdLabels,
+Stream,
+String,
+Sys,
+Threads,
+Weak,
+},
+%
+%
+% Comments delimiters, we do turn this off for the manual
+morecomment=[s]{(*}{*)},%
+%
+% Spaces are not displayed as a special character
+showstringspaces=false,
+%
+% String delimiters
+morestring=[b]",%
+%
+% Size of tabulations
+tabsize=3,
+%
+% Enables ASCII chars 128 to 255
+extendedchars=false,
+%
+% Case sensitivity
+sensitive=true,
+%
+% Automatic breaking of long lines
+breaklines=true,
+%
+% Default style fors listings
+basicstyle=\small,
+%
+% Position of captions is bottom
+captionpos=b,
+%
+% Full flexible columns
+columns=[l]fullflexible,
+%
+% Style for (listings') identifiers
+identifierstyle={\ttfamily\color{black}},
+% Note : highlighting of Coq identifiers is done through a new
+% delimiter definition through an lstset at the begining of the
+% document. Don't know how to do better.
+%
+% Style for declaration keywords
+keywordstyle=[1]{\ttfamily\color[rgb]{0.1,0.1,0.8}},
+% Style for gallina keywords
+keywordstyle=[2]{\ttfamily\color{dkgreen}},
+% Style for sorts keywords
+keywordstyle=[3]{\ttfamily\color{ltblue}},
+% Style for tactics keywords
+keywordstyle=[4]{\ttfamily\color{dkblue}},
+% Style for terminators keywords
+keywordstyle=[5]{\ttfamily\color{dkred}},
+%Style for iterators
+%keywordstyle=[6]{\ttfamily\color{dkpink}},
+% Style for strings
+stringstyle=\ttfamily,
+% Style for comments
+commentstyle={\ttfamily\color{dkgreen}},
+%
+%
+%moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
+%litterate
+%    {==>}{{$\Rightarrow$}}1 
+%literate={~}{{$bla$}}1 
+%literate={:=}{{$\gets$}}1 {<=}{{$\leq$}}1 {>=}{{$\geq$}}1 {<>}{{$\neq$}}1
+%
+}[keywords,comments,strings]
+
+%\lstnewenvironment{caml}{\lstset{language=MyCaml,basicstyle=\ttfamily\basiccodesize}}{}
+\lstnewenvironment{caml}{\lstset{language=MyCaml,basicstyle=\ttfamily\normalsize,%
+  literate={\\*}{{$\Hstar$}}1 {~>}{{$\Hdatasep$}}1 {==>}{{$\Himpl$}}1}}{}
+\lstnewenvironment{camls}{\lstset{language=MyCaml,basicstyle=\ttfamily\scriptsize}}{}
+\lstnewenvironment{camll}{\lstset{language=MyCaml,basicstyle=\ttfamily\small}}{}
+% pour inliner dans le texte
+\def\lstcamlinline{\lstinline[language=MyCaml, basicstyle=\ttfamily\small]}
+% pour inliner dans les tableaux / displaymath...
+\def\lstcamlinlines{\lstinline[language=MyCaml, basicstyle=\ttfamily\normalsize]}
+
+
+\newcommand{\camlinline}[1]{\text{\lstcamlinline{#1}}}
+\newcommand{\Camlinline}[1]{(\camlinline{#1})}
+
+\newcommand{\ca}[1]{\camlinline{#1}}
+\newcommand{\Ca}[1]{\Camlinline{#1}}
+
+%for use in inferrules, to work around bug
+\newcommand{\cafake}[1]{\texttt{#1}}
+\newcommand{\Cafake}[1]{(\texttt{#1})}
+
