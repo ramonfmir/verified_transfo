@@ -1,42 +1,4 @@
-\frametitle{Summary and Additional Fields}
+\frametitle{Conclusion}
 
-%\resizebox{\textwidth}{!}{<content>}
-%type 'a t = | Empty of 'a
- %           | Struct of weight * 'a pchunk * ('a pchunk) t * 'a pchunk
-\begin{multicols}{2}
-
-\begin{camls}
-type 'a chunk = {
-  mutable head : int;
-  mutable size : int;
-  mutable data : 'a array;
-  default : 'a; }
-\end{camls}
-
-\begin{camls}
-type 'a pchunk = {
-  version : version;
-  support : 'a chunk;
-  mutable view : segment;
-  mutable weight : weight; }
-\end{camls}
-
-\end{multicols}
-
-\begin{camls}
-type 'a seq = {
-  mutable version : version;
-  mutable front : 'a chunk;
-  mutable free_front : ('a chunk) option;
-  mutable middle : ('a pchunk) PWSeq.t;
-  mutable free_back : ('a chunk) option;
-  mutable back : 'a chunk;
-}
-\end{camls}
-
-\begin{camls}
-type 'a pseq =
-	 | Empty of 'a
-    | Struct of weight * 'a pchunk * ('a pchunk) t * 'a pchunk
-\end{camls}
+conclusion
 

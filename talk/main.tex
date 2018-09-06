@@ -31,6 +31,7 @@
 
 %\framecontentsection
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Motivating example - initial code}
@@ -51,6 +52,7 @@
 \end{lstlisting}
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
@@ -75,6 +77,7 @@ Suppose that the calculation uses mainly the position.
 
 \end{frame}
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Motivating example - peeling}
@@ -96,6 +99,7 @@ Further suppose that the intial `particle' record is not used as part of a dynam
 
 \end{frame}
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Motivating example - AoS to SoA}
@@ -116,6 +120,7 @@ Now, say that we want to take advantage of vector instructions.
 
 \end{frame}
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Motivating example - AoS to AoSoA}
@@ -135,6 +140,7 @@ But without reducing too much the locality between accesses to fields of the ori
 \end{lstlisting}
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
@@ -163,6 +169,7 @@ Now we have to write:
 \end{lstlisting}
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
@@ -248,216 +255,118 @@ Examples of the semantics of our language compared to C:
 \end{frame}
 
 
-
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Related Work}
+\frametitle{Language overview - typing}
 
-\begin{tabular}{llll}
- \textbf{Structure} & \textbf{Memory} & \textbf{Time} & \textbf{Limitations}\\
-Arrays & $1\times$ & $1\times$ & concat/split/resize: $O(n)$ \\
-Vectors & $2-4\times$ & $2\times$ & concat/split: $O(n)$\\
-% Vectors: 2x time because of copies
-Lists & $3\times$ & $3\times$ & concat/split/random access $O(n)$\\
-% Lists: 3x time on large sequences because of pointers
-Finger trees & $>3\times$ & $>3\times$ & Not transient\\
-% worse than lists
-% bad constant factors, better with chunks
-Ropes & ? & ? & More complex access to ends, \\
-& & & not automatically balanced\\
-% pas de borne sur la memoire et le temps (degenere vite)
-% data is deeper, catenable chunks not next to each other, balancing (split can lead to very unbalanced tree), no access to ends, not transient
-Chunked Seq & $<1.2 \times$ & $<2 \times$ &
-\end{tabular}
+Maybe a couple or three slides for this.
 
-\end{frame}
+Give overview of typing.
 
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Interface}
+Use this theorem to explain the different parts of semantics and typing.
 
-Chunks: fixed capacity arrays in which elements are stored\\
-K = size of chunks
+\begin{coqs}
+Theorem type_soundess : forall C LLC F m t v T G S m',
+  red C LLC S m t m' v ->
+  typing C LLC F G t T ->
+  state_typing C LLC F m ->
+  stack_typing C LLC F G S ->
+  exists F', extends F F'
+    /\  typing_val C LLC F' v T
+    /\  state_typing C LLC F' m'.
+\end{coqs}
 
-\bigskip
-
-\begin{tabular}{lll}
- \textbf{Operation} & \textbf{Ephemeral} & \textbf{Persistent}\\
- &&\\
-push/pop/front/back & $O(1 + \frac{1}{K}\log_K n)$ & $O(K + \frac{1}{K}\log_K n)$\\
-\tab usual case & $O(1)$ & $O(1)$\\
-concat/split/get/set & $O(K \log_Kn)$ & $O(K \log_Kn)$\\
-iter/fold/... & $O(n)$ & $O(n)$\\
-% mettre en centre
-Ephemeral \textrightarrow Persistent & & \\
-\tab destructive & \tab \tab \tab $O(1$) & \\
-\tab nondestructive  & \tab \tab \tab $O(K)$ & \\
-Persistent \textrightarrow Ephemeral & \tab \tab \tab $O(K)$ &
-\end{tabular}
+Some language properties.
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Tree Structure}
-%accroississement exponentiel de la taille des elements, donc pas beaucoup de niveaux
-%\Imagew{10}{tree_structure.pdf}
-[image]
+\frametitle{Transformations - grouping}
+
+group
 
 \end{frame}
-
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Sequence Representation - persistent}
+\frametitle{Transformations - tiling}
 
-\textbf{Pchunk}:\\
-Fixed capacity persistent sequence\\
-Implemented using a view on a shared ``support" chunk
-%A pchunk is a small (size $<$ K) persistent sequence
-%implemented using a view on a shared ``support" chunk.
-
-\begin{caml}
-  type 'a pchunk = {
-    support : 'a chunk;
-    mutable view : segment; }
-\end{caml}
-
-\begin{caml}
-type segment = int * int
-\end{caml}
-
-\medskip
-
-The shared chunk is reusable when popping or when pushing past its bounds. Other push cases need copy-on-write.
-
-\medskip
-
-Pops are always O(1), pushes are in amortized O(1) if iterated.
-
-\begin{caml}
- type 'a pseq =
- | Empty
- | Struct of 'a pchunk * ('a pchunk) seq * 'a pchunk
-\end{caml}
+tiling
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Versions}
+\frametitle{Transformations - adding indirection}
 
-\textbf{Goal:} Work on pchunks with in-place updates in ephemeral sequences
-
-\smallskip
-
-\textbf{Solution:} Maintain whether a chunk is shared or uniquely possessed in ephemeral sequences
-
-\medskip
-
-\textbf{Invariants:} \\
-Persistent: all chunks are marked false\\
-Ephemeral: some are false and shared, some are true and were created in this sequence
-
-\smallskip
-
-Ephemeral \textrightarrow persistent = mark all chunks back to false\\
-%other option: use a list; not great because not all pchunks have the same type
-%Persistent \textrightarrow Ephemeral:\\
-%\tab all chunks are ``false", ``true" chunks can be created\\
-%Ephemeral \textrightarrow Persistent:\\
-%\tab all chunks must be marked ``false"
-
-%all chunks have a version, match = in-place update etc
-Version number trick enables this to be done in constant time.\\
-
-\begin{caml}
-  type 'a pchunk = {
-  	version : version;
-   support : 'a chunk;
-   mutable view : segment; }
-\end{caml}
-
-\bigskip
+adding indirection
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Transient Sequences - Types}
+\frametitle{Transformations - AoS to SoA}
 
-\begin{caml}
-type 'a seq = {
-  mutable version : version;
-  mutable front : 'a chunk;
-  mutable middle : ('a pchunk) pseq;
-  mutable back : 'a chunk;
-}
-\end{caml}
-
-\begin{caml}
-type 'a pseq =
-| Empty of 'a
-| Struct of 'a pchunk * ('a pchunk) pseq * 'a pchunk
-\end{caml}
-
-\medskip
-
-Note: Persistent sequence version number is stored in back chunk.
+AoS to SoA
 
 \end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Summary and Additional Fields}
+\frametitle{Transformations - summary}
 
-%\resizebox{\textwidth}{!}{<content>}
-%type 'a t = | Empty of 'a
- %           | Struct of weight * 'a pchunk * ('a pchunk) t * 'a pchunk
-\begin{multicols}{2}
-
-\begin{camls}
-type 'a chunk = {
-  mutable head : int;
-  mutable size : int;
-  mutable data : 'a array;
-  default : 'a; }
-\end{camls}
-
-\begin{camls}
-type 'a pchunk = {
-  version : version;
-  support : 'a chunk;
-  mutable view : segment;
-  mutable weight : weight; }
-\end{camls}
-
-\end{multicols}
-
-\begin{camls}
-type 'a seq = {
-  mutable version : version;
-  mutable front : 'a chunk;
-  mutable free_front : ('a chunk) option;
-  mutable middle : ('a pchunk) PWSeq.t;
-  mutable free_back : ('a chunk) option;
-  mutable back : 'a chunk;
-}
-\end{camls}
-
-\begin{camls}
-type 'a pseq =
-	 | Empty of 'a
-    | Struct of weight * 'a pchunk * ('a pchunk) t * 'a pchunk
-\end{camls}
+Peeling = 
+Splitting =
+AoS to SoA =
+AoS to SoA =
 
 \end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Transformations - proof}
+
+statement and proof
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Project extent}
+
+what has been done and what hasn't quite and statistics
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Future work}
+
+for instance functions etc, combining them. Code realisations...
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Conclusion}
+
+conclusion
+
+\end{frame}
+
 
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
 
 \end{document}
-
