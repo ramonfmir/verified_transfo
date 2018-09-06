@@ -14,10 +14,10 @@
 %******************************************************************************
 %******************************************************************************
 
-\title{Transient Chunked Sequences}
-\author[Émilie Guermeur]{{\bf Émilie Guermeur}\\ \vspace{1em} with Arthur Charguéraud and François Pottier }
+\title{Verification of Data Layout Transformations}
+\author[Ramon Fern\'{a}ndez Mir]{{\bf Ramon Fern\'{a}ndez Mir}\\ \vspace{1em} with Arthur Charguéraud }
 \institute[]{Inria}
-\date{2018/06/19}
+\date{17/09/2018}
 
 \frame{\titlepage}
 
@@ -30,6 +30,21 @@
 %\section{Separation Logic: a first example}
 
 %\framecontentsection
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivation}
+
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item To have an efficient data structure for stacks, queues, deques, sequences, catenable sequences, random access sequences, strings\\
+	\item Both ephemeral and persistent versions with full persistence\\
+	\item Convert between ephemeral and persistent versions in constant time
+	%(transient like clojure)
+\end{itemize}
+
+\end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
@@ -51,21 +66,6 @@
 
 \end{frame}
 
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Motivation}
-
-\begin{itemize}
-	\setlength\itemsep{1.5em}
-	\item To have an efficient data structure for stacks, queues, deques, sequences, catenable sequences, random access sequences, strings\\
-	\item Both ephemeral and persistent versions with full persistence\\
-	\item Convert between ephemeral and persistent versions in constant time
-	%(transient like clojure)
-\end{itemize}
-
-\end{frame}
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
