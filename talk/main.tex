@@ -33,6 +33,28 @@
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Motivating example - initial code}
+
+\begin{lstlisting}[style=Cstyle]
+  typdef struct {
+    // Position
+    float x, y, z;
+    // Other fields
+    float vx, vy, vz, c, m, v;
+  } particle;
+  
+  particle data[NUM_PARTICLES];
+  
+  for (int i = 0; i < NUM_PARTICLES; i ++) {
+    // Some calculation
+  }
+\end{lstlisting}
+
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Motivation}
 
 \begin{itemize}
@@ -112,26 +134,6 @@ Ephemeral \textrightarrow Persistent & & \\
 \tab nondestructive  & \tab \tab \tab $O(K)$ & \\
 Persistent \textrightarrow Ephemeral & \tab \tab \tab $O(K)$ &
 \end{tabular}
-
-\end{frame}
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Chunked Sequence - key idea}
-
-%These types are not final
-\begin{caml}
-  type 'a chunk = {
-    data : 'a array;
-    mutable head : head;
-    mutable size : int; }
-\end{caml}
-
-\begin{caml}
- type 'a seq =
- |  Empty
- | Struct of 'a chunk * ('a chunk) seq * 'a chunk
-\end{caml}
 
 \end{frame}
 
