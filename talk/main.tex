@@ -36,7 +36,7 @@
 \frametitle{Motivating example - initial code}
 
 \begin{lstlisting}[style=Cstyle]
-  typdef struct {
+  typedef struct {
     // Position
     float x, y, z;
     // Other fields
@@ -45,11 +45,114 @@
   
   particle data[NUM_PARTICLES];
   
-  for (int i = 0; i < NUM_PARTICLES; i ++) {
+  for (int i = 0; i < NUM_PARTICLES; i++) {
     // Some calculation
   }
 \end{lstlisting}
 
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - splitting}
+
+Suppose that the calculation uses mainly the position.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float vx, vy, vz, c, m, v;
+  } cold_fields;
+
+  typedef struct {
+    float x, y, z;
+    cold_fields *other;
+  } particle;
+  
+  particle data[NUM_PARTICLES];
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - peeling}
+
+Further suppose that the intial `particle' record is not used as part of a dynamic data structure.
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float vx, vy, vz, c, m, v;
+  } cold_fields;
+
+  typedef struct {
+    float x, y, z;
+  } hot_fields;
+
+  cold_fields other_data[NUM_PARTICLES];
+  hot_fields pos_data[NUM_PARTICLES];
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - AoS to SoA}
+
+Now, say that we want to take advantage of vector instructions.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float x[NUM_PARTICLES]; 
+    float y[NUM_PARTICLES];
+    float z[NUM_PARTICLES];
+  } hot_fields;
+
+  hot_fields pos_data;
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - AoS to AoSoA}
+
+But without reducing too much the locality between accesses to fields of the original struct.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float x[N]; 
+    float y[N];
+    float z[N];
+  } hot_fields;
+
+  hot_fields pos_data[NUM_PARTICLES / N];
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - resulting code}
+
+After all these changes, where we wrote:
+
+\begin{lstlisting}[style=Cstyle]
+  data[i].x 
+\end{lstlisting}
+
+\bigskip
+
+Now we have to write:
+
+\begin{lstlisting}[style=Cstyle]
+  pos_data[i/N].x[i%N]
+\end{lstlisting}
 
 \end{frame}
 
