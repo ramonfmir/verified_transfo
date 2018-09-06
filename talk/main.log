@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.7.31)  6 SEP 2018 15:37
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.7.31)  6 SEP 2018 17:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1611,30 +1611,40 @@ Package: etoolbox 2015/08/02 v2.2a e-TeX tools for LaTeX (JAW)
 (./macros.tex
 \c@remarkcounter=\count170
 \c@keyidea=\count171
+) (/usr/share/texlive/texmf-dist/tex/latex/fancyvrb/fancyvrb.sty
+Package: fancyvrb 2008/02/07
+
+Style option: `fancyvrb' v2.7a, with DG/SPQR fixes, and firstline=lastline fix 
+<2008/02/07> (tvz)
+\FV@CodeLineNo=\count172
+\FV@InFile=\read3
+\FV@TabBox=\box55
+\c@FancyVerbLine=\count173
+\FV@StepNumber=\count174
+\FV@OutFile=\write5
 ) (/usr/share/texlive/texmf-dist/tex/latex/tools/multicol.sty
 Package: multicol 2015/08/19 v1.8n multicolumn formatting (FMi)
-\c@tracingmulticols=\count172
-\mult@box=\box55
+\c@tracingmulticols=\count175
+\mult@box=\box56
 \multicol@leftmargin=\dimen260
-\c@unbalance=\count173
-\c@collectmore=\count174
-\doublecol@number=\count175
-\multicoltolerance=\count176
-\multicolpretolerance=\count177
+\c@unbalance=\count176
+\c@collectmore=\count177
+\doublecol@number=\count178
+\multicoltolerance=\count179
+\multicolpretolerance=\count180
 \full@width=\dimen261
 \page@free=\dimen262
 \premulticols=\dimen263
 \postmulticols=\dimen264
 \multicolsep=\skip63
 \multicolbaselineskip=\skip64
-\partial@page=\box56
-\last@line=\box57
+\partial@page=\box57
+\last@line=\box58
 \maxbalancingoverflow=\dimen265
-\mult@rightbox=\box58
-\mult@grightbox=\box59
-\mult@gfirstbox=\box60
-\mult@firstbox=\box61
-\@tempa=\box62
+\mult@rightbox=\box59
+\mult@grightbox=\box60
+\mult@gfirstbox=\box61
+\mult@firstbox=\box62
 \@tempa=\box63
 \@tempa=\box64
 \@tempa=\box65
@@ -1651,16 +1661,16 @@ Package: multicol 2015/08/19 v1.8n multicolumn formatting (FMi)
 \@tempa=\box76
 \@tempa=\box77
 \@tempa=\box78
-\c@columnbadness=\count178
-\c@finalcolumnbadness=\count179
+\@tempa=\box79
+\c@columnbadness=\count181
+\c@finalcolumnbadness=\count182
 \last@try=\dimen266
 \multicolovershoot=\dimen267
 \multicolundershoot=\dimen268
-\mult@nat@firstbox=\box79
-\colbreak@box=\box80
-\mc@col@check@num=\count180
-)
-(./main.aux)
+\mult@nat@firstbox=\box80
+\colbreak@box=\box81
+\mc@col@check@num=\count183
+) (./main.aux)
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 10.
@@ -1720,16 +1730,16 @@ LaTeX Font Info:    ... okay on input line 10.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count181
+\scratchcounter=\count184
 \scratchdimen=\dimen269
-\scratchbox=\box81
-\nofMPsegments=\count182
-\nofMParguments=\count183
+\scratchbox=\box82
+\nofMPsegments=\count185
+\nofMParguments=\count186
 \everyMPshowfont=\toks49
-\MPscratchCnt=\count184
+\MPscratchCnt=\count187
 \MPscratchDim=\dimen270
-\MPnumerator=\count185
-\makeMPintoPDFobject=\count186
+\MPnumerator=\count188
+\makeMPintoPDFobject=\count189
 \everyMPtoPDFconversion=\toks50
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2010/02/09 v2.5 Base part for package epstopdf
@@ -1747,7 +1757,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 ABD: EveryShipout initializing macros
-\AtBeginShipoutBox=\box82
+\AtBeginShipoutBox=\box83
 Package hyperref Info: Link coloring OFF on input line 10.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
@@ -1756,15 +1766,15 @@ Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
 (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
 Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
 )
-\c@section@level=\count187
+\c@section@level=\count190
 )
 LaTeX Info: Redefining \ref on input line 10.
 LaTeX Info: Redefining \pageref on input line 10.
 LaTeX Info: Redefining \nameref on input line 10.
 
 (./main.out) (./main.out)
-\@outlinefile=\write5
-\openout5 = `main.out'.
+\@outlinefile=\write6
+\openout6 = `main.out'.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/beamer/translator/dicts/translator-bas
@@ -1792,7 +1802,7 @@ orem-dictionary/translator-theorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 )
 LaTeX Info: Redefining \includegraphics on input line 10.
-\c@lstlisting=\count188
+\c@lstlisting=\count191
  (./main.nav)<<ot1.cmap>>
 
 Package hyperref Warning: Option `pdfauthor' has already been used,
@@ -1850,41 +1860,47 @@ File: lstmisc.sty 2015/06/04 1.6 (Carsten Heinz)
 ]
 \openout4 = `main.vrb'.
 
- (./main.vrb<<oml.cmap>><<oms.cmap>>
-LaTeX Font Info:    Try loading font information for OMX+yhex on input line 4.
+ (./main.vrb
+LaTeX Font Info:    Try loading font information for OMS+cmss on input line 6.
+LaTeX Font Info:    No file OMScmss.fd. on input line 6.
+
+
+LaTeX Font Warning: Font shape `OMS/cmss/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbar' on input line 6.
+
+<<oms.cmap>><<oml.cmap>>
+LaTeX Font Info:    Try loading font information for OMX+yhex on input line 9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/yhmath/OMXyhex.fd
 File: OMXyhex.fd 
 File: OMXyhex.fd 2013/07/03 v1.1 YH's humble contribution to TeX maths (NP)
 )
 LaTeX Font Info:    External font `yhcmex10' loaded for size
-(Font)              <10.95> on input line 4.
+(Font)              <8> on input line 9.
 <<omx.cmap>>
 LaTeX Font Info:    External font `yhcmex10' loaded for size
-(Font)              <8> on input line 4.
+(Font)              <6> on input line 9.
 LaTeX Font Info:    External font `yhcmex10' loaded for size
-(Font)              <6> on input line 4.
-LaTeX Font Info:    Try loading font information for U+msa on input line 4.
+(Font)              <5> on input line 9.
+LaTeX Font Info:    Try loading font information for U+msa on input line 9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 4.
+LaTeX Font Info:    Try loading font information for U+msb on input line 9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Try loading font information for U+stmry on input line 4.
+LaTeX Font Info:    Try loading font information for U+stmry on input line 9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/stmaryrd/Ustmry.fd)
-LaTeX Font Info:    Try loading font information for U+rsfs on input line 4.
+LaTeX Font Info:    Try loading font information for U+rsfs on input line 9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/jknapltx/ursfs.fd
 File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
-)
-LaTeX Font Info:    External font `yhcmex10' loaded for size
-(Font)              <5> on input line 11.
-) [9
+)) [9
 
 ]
 \openout4 = `main.vrb'.
@@ -1896,22 +1912,26 @@ LaTeX Font Info:    External font `yhcmex10' loaded for size
 \openout4 = `main.vrb'.
 
  (./main.vrb
+LaTeX Font Info:    External font `yhcmex10' loaded for size
+(Font)              <10.95> on input line 3.
+) [11
+
+]
+\openout4 = `main.vrb'.
+
+ (./main.vrb
 LaTeX Font Info:    Try loading font information for TS1+cmss on input line 16.
 
- (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmss.fd
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmss.fd
 File: ts1cmss.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-))
-[11
+)) [12
 
 ]
 \openout4 = `main.vrb'.
 
- (./main.vrb) [12
-
-]
-\openout4 = `main.vrb'.
-
- (./main.vrb) [13
+ (./main.vrb)
+[13
 
 ]
 \openout4 = `main.vrb'.
@@ -1921,8 +1941,7 @@ File: ts1cmss.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 ]
 \openout4 = `main.vrb'.
 
- (./main.vrb)
-[15
+ (./main.vrb) [15
 
 ]
 \openout4 = `main.vrb'.
@@ -1930,20 +1949,26 @@ File: ts1cmss.fd 2014/09/29 v2.5h Standard LaTeX font definitions
  (./main.vrb) [16
 
 ]
-\tf@nav=\write6
-\openout6 = `main.nav'.
+\openout4 = `main.vrb'.
 
-\tf@toc=\write7
-\openout7 = `main.toc'.
+ (./main.vrb)
+[17
 
-\tf@snm=\write8
-\openout8 = `main.snm'.
+]
+\tf@nav=\write7
+\openout7 = `main.nav'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 405.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 405.
+\tf@toc=\write8
+\openout8 = `main.toc'.
+
+\tf@snm=\write9
+\openout9 = `main.snm'.
+
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 460.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 460.
  (./main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 405.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 405.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 460.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 460.
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
 
@@ -1951,13 +1976,16 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 1.0pt have occurred.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 405.
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 460.
  ) 
 Here is how much of TeX's memory you used:
- 22550 strings out of 493029
- 391791 string characters out of 6136234
- 602665 words of memory out of 5000000
- 25455 multiletter control sequences out of 15000+600000
+ 23001 strings out of 493029
+ 398659 string characters out of 6136234
+ 630107 words of memory out of 5000000
+ 25895 multiletter control sequences out of 15000+600000
  16869 words of font info for 62 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  58i,16n,68p,951b,1248s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -1969,15 +1997,16 @@ type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
 blic/amsfonts/cm/cmss10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/a
 msfonts/cm/cmss12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
 s/cm/cmss8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-ssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10
-.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/public/mathabx-type1/matha10.pfb></usr
-/share/texlive/texmf-dist/fonts/type1/public/mathabx-type1/matha8.pfb></usr/sha
-re/texmf/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on main.pdf (16 pages, 136148 bytes).
+ssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.
+pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></
+usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/public/mathabx-type1/matha10.pfb></usr/share/
+texlive/texmf-dist/fonts/type1/public/mathabx-type1/matha8.pfb></usr/share/texm
+f/fonts/type1/public/cm-super/sfss1095.pfb>
+Output written on main.pdf (17 pages, 144509 bytes).
 PDF statistics:
- 185 PDF objects out of 1000 (max. 8388607)
- 139 compressed objects within 2 object streams
- 33 named destinations out of 1000 (max. 500000)
+ 195 PDF objects out of 1000 (max. 8388607)
+ 147 compressed objects within 2 object streams
+ 35 named destinations out of 1000 (max. 500000)
  69 words of extra memory for PDF output out of 10000 (max. 10000000)
 

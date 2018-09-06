@@ -2,7 +2,7 @@
 \input{arthur}
 \input{macros}
 
-
+\usepackage{fancyvrb}
 \usepackage{multicol}
 
 \newcommand\tab{$\hphantom{--}$}
@@ -138,33 +138,41 @@ But without reducing too much the locality between accesses to fields of the ori
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Motivating example - resulting code}
+\frametitle{Motivating example - summary}
 
-After all these changes, where we wrote:
+In short, the transformations we have seen are:
+\begin{itemize}
+	\item Splitting.
+	\item Peeling.
+	\item AoS to SoA.
+	\item AoS to AoSoA.
+\end{itemize}
+
+\bigskip
+
+Note that after all these changes, where we wrote:
 
 \begin{lstlisting}[style=Cstyle]
   data[i].x 
 \end{lstlisting}
 
-\bigskip
-
 Now we have to write:
 
 \begin{lstlisting}[style=Cstyle]
-  pos_data[i/N].x[i%N]
+  pos_data[i / N].x[i % N]
 \end{lstlisting}
 
 \end{frame}
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Motivation}
+\frametitle{Project goals}
 
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item To have an efficient data structure for stacks, queues, deques, sequences, catenable sequences, random access sequences, strings\\
-	\item Both ephemeral and persistent versions with full persistence\\
-	\item Convert between ephemeral and persistent versions in constant time
+	\item Formalize a subset of C that captures the essential for these transformations.\\
+	\item Find the basic transformations that combined give rise to the ones we are interested in.\\
+	\item Define them and prove their correctness.
 	%(transient like clojure)
 \end{itemize}
 
@@ -173,23 +181,72 @@ Now we have to write:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Demo Coq}
-
-\begin{coq}
-  Lemma foo : forall x, exists y, x = y.
-  Proof using.
-    foo_solved.
-  Qed.
-\end{coq}
+\frametitle{Language overview - values and terms}
 
 \begin{coqs}
-  Lemma bar : forall x, exists y, x = y.
-  Proof using.
-    bar_solved.
-  Qed.
+Inductive val : Type :=
+  (* High-level *)
+  | val_error : val
+  | val_unit : val
+  | val_uninitialized : val
+  | val_bool : bool -> val
+  | val_int : int -> val
+  | val_double : int -> val
+  | val_abstract_ptr : loc -> accesses -> val
+  | val_array : typ -> list val -> val
+  | val_struct : typ -> map field val -> val
+  (* Low-level *)
+  | val_concrete_ptr : loc -> offset -> val
+  | val_words : list word -> val.
+\end{coqs}
+
+\begin{coqs}
+Inductive trm : Type :=
+  | trm_var : var -> trm
+  | trm_val : val -> trm
+  | trm_if : trm -> trm -> trm -> trm
+  | trm_let : bind -> trm -> trm -> trm
+  | trm_app : prim -> list trm -> trm
+  | trm_while : trm -> trm -> trm
+  | trm_for : var -> val -> val -> trm -> trm.
 \end{coqs}
 
 \end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - primitive operations}
+
+\begin{coqs}
+Inductive prim : Type :=
+  (* High-level *)
+  | prim_binop : binop -> prim
+  | prim_get : typ -> prim
+  | prim_set : typ -> prim
+  | prim_new : typ -> prim
+  | prim_new_array : typ -> prim
+  | prim_struct_access : typ -> field -> prim
+  | prim_array_access : typ -> prim
+  | prim_struct_get : typ -> field -> prim
+  | prim_array_get : typ -> prim
+  (* Low-level *)
+  | prim_ll_get : typ -> prim
+  | prim_ll_set : typ -> prim
+  | prim_ll_new : typ -> prim
+  | prim_ll_access : typ -> prim.
+\end{coqs}
+
+Examples of the semantics of our language compared to C:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   get p   : *p                         array_access p i  : p + i
+   set p v : *p = v                     struct_access p f : &(p->f)
+   new T   : malloc(sizeof(T))          struct_get s f    : s.f
+\end{Verbatim}
+
+\end{frame}
+
 
 
 %------------------------------------------------------------------------------
