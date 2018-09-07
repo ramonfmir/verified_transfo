@@ -3,6 +3,7 @@
 \input{macros}
 
 \usepackage{fancyvrb}
+\usepackage{graphicx}
 \usepackage{multicol}
 
 \newcommand\tab{$\hphantom{--}$}
@@ -30,6 +31,46 @@
 %\section{Separation Logic: a first example}
 
 %\framecontentsection
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/ITER_tokamak}
+\caption{\footnotesize ITER tokamak}
+\label{fig:figure1}
+\end{minipage}%
+\hspace{0.5cm}
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/plasma_physics}
+\caption{\footnotesize Plasma physics}
+\label{fig:figure2}
+\end{minipage}%
+\hspace{0.5cm}
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/PIC_simulation}
+\caption{\footnotesize PIC simulation}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+\bigskip
+
+Challenges:
+\begin{itemize}
+	\item Exploit data-level parallelism.
+	\item Use domain-specific knowledge of the code.
+	\item Do it without introducing any bugs.
+\end{itemize}
+
+\end{frame}
 
 
 %------------------------------------------------------------------------------
