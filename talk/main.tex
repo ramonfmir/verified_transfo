@@ -218,10 +218,90 @@ Now we have to write:
 
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item Formalize a subset of C that captures the essential for these transformations.\\
 	\item Find the basic transformations that combined give rise to the ones we are interested in.\\
-	\item Define them and prove their correctness.
-	%(transient like clojure)
+	\item Formalize a C-like language with arrays, structs and pointers to apply these transformations.
+	\begin{itemize}
+		\item On a high-level, to simplify the proofs.
+		\item On a low-level, to be closer to the semantics of C.
+	\end{itemize}
+	\item Define the transformations and prove their correctness.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations}
+
+\begin{center}
+\begin{minipage}{0.45\linewidth}
+\textbf{\small 1. Field grouping}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b, c;
+} s;
+
+// After
+typedef struct {
+  int b, c;
+} sg;
+
+typedef struct {
+  int a; sg fg;
+} s;
+\end{lstlisting}
+\textbf{\small 2. Array tiling}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+int[N] a;
+
+// After
+int[B][N / B] a;
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\textbf{\small 3. Adding indirection}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b;
+} s;
+
+// After
+typedef struct {
+  int a; int *b;
+} s;
+\end{lstlisting}
+\textbf{\small 4. AoS to SoA}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b;
+} s;
+
+// After
+typedef struct {
+  int a[N]; int b[N];
+} s;
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - justification}
+
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item \textbf{Peeling:} Field grouping twice.
+	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group.
+	\item \textbf{AoS to SoA:} AoS to SoA.
+	\item \textbf{AoS to AoSoA:} Array tiling and then AoS to SoA on the tiles.
 \end{itemize}
 
 \end{frame}
