@@ -219,7 +219,7 @@ Now we have to write:
 \begin{itemize}
 	\setlength\itemsep{1.5em}
 	\item Find the basic transformations that combined give rise to the ones we are interested in.\\
-	\item Formalize a C-like language with arrays, structs and pointers to apply these transformations.
+	\item Formalize a C-like language with arrays, structs and pointers.
 	\begin{itemize}
 		\item On a high-level, to simplify the proofs.
 		\item On a low-level, to be closer to the semantics of C.
@@ -313,7 +313,6 @@ typedef struct {
 
 \begin{coqs}
 Inductive val : Type :=
-  (* High-level *)
   | val_error : val
   | val_unit : val
   | val_uninitialized : val
@@ -323,9 +322,6 @@ Inductive val : Type :=
   | val_abstract_ptr : loc -> accesses -> val
   | val_array : typ -> list val -> val
   | val_struct : typ -> map field val -> val
-  (* Low-level *)
-  | val_concrete_ptr : loc -> offset -> val
-  | val_words : list word -> val.
 \end{coqs}
 
 \begin{coqs}
@@ -348,7 +344,6 @@ Inductive trm : Type :=
 
 \begin{coqs}
 Inductive prim : Type :=
-  (* High-level *)
   | prim_binop : binop -> prim
   | prim_get : typ -> prim
   | prim_set : typ -> prim
@@ -358,11 +353,6 @@ Inductive prim : Type :=
   | prim_array_access : typ -> prim
   | prim_struct_get : typ -> field -> prim
   | prim_array_get : typ -> prim
-  (* Low-level *)
-  | prim_ll_get : typ -> prim
-  | prim_ll_set : typ -> prim
-  | prim_ll_new : typ -> prim
-  | prim_ll_access : typ -> prim.
 \end{coqs}
 
 Examples of the semantics of our language compared to C:
@@ -371,6 +361,18 @@ Examples of the semantics of our language compared to C:
    get p   : *p                         array_access p i  : p + i
    set p v : *p = v                     struct_access p f : &(p->f)
    new T   : malloc(sizeof(T))          struct_get s f    : s.f
+\end{Verbatim}
+
+where pointers are represented as pairs:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   (l, [access_field T f, access_array T' i]) 
+\end{Verbatim}
+
+which would correspond to the address:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   l + field_offset(f) + i * sizeof(T')
 \end{Verbatim}
 
 \end{frame}
