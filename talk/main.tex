@@ -380,26 +380,92 @@ which would correspond to the address:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Language overview - typing}
+\frametitle{Language overview - semantics}
 
-Maybe a couple or three slides for this.
+%Maybe a couple or three slides for this.
 
-Give overview of typing.
+%Give overview of typing.
 
-Use this theorem to explain the different parts of semantics and typing.
+%Use this theorem to explain the different parts of semantics and typing.
+
+Some crucial definitions:
 
 \begin{coqs}
-Theorem type_soundess : forall C LLC F m t v T G S m',
-  red C LLC S m t m' v ->
-  typing C LLC F G t T ->
-  state_typing C LLC F m ->
-  stack_typing C LLC F G S ->
-  exists F', extends F F'
-    /\  typing_val C LLC F' v T
-    /\  state_typing C LLC F' m'.
+Definition typdefctx := map typvar typ.
+
+Record ll_typdefctx := make_ll_typdefctx {
+  typvar_sizes				: map typvar size;
+  fields_offsets	: map typvar (map field offset);
+  fields_order				: map typvar (list field) }.
+  
+Definition stack := Ctx.ctx val.
+
+Definition state := map loc val.
 \end{coqs}
 
-Some language properties.
+\bigskip
+
+And the relation that defines the big-step reduction rules:
+
+\begin{coqs}
+red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - typing}
+
+The allowed types are:
+
+\begin{coqs}
+Inductive typ : Type :=
+  | typ_unit : typ
+  | typ_int : typ
+  | typ_double : typ
+  | typ_bool : typ
+  | typ_ptr : typ -> typ
+  | typ_array : typ -> option size -> typ
+  | typ_struct : map field typ -> typ
+  | typ_var : typvar -> typ.
+\end{coqs}
+
+\bigskip
+
+With their corresponding definitions (analogous to stack and state):
+
+\begin{coqs}
+Definition gamma : Ctx.ctx typ.
+
+Definition phi : map loc typ.
+\end{coqs}
+
+\bigskip
+
+Typing is defined as the following relation:
+
+\begin{coqs}
+typing		<==		typdefctx |times 	ll_typdefctx |times 	phi |times 	gamma |times 	trm |times	typ
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - type soundness}
+
+An example of a theorem that we proved as a sanity check:
+
+\begin{coqs}
+Theorem type_soundness : forall C LLC m t v T,
+  red C LLC nil empty t m v ->
+  typing C LLC empty nil t T ->
+  exists f, typing_val C LLC f v T 
+  	/\  state_typing C LLC f m.
+\end{coqs}
 
 \end{frame}
 
