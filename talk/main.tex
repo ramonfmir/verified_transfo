@@ -343,16 +343,16 @@ Inductive trm : Type :=
 \frametitle{Language overview - primitive operations}
 
 \begin{coqs}
-Inductive prim : Type :=
-  | prim_binop : binop -> prim
-  | prim_get : typ -> prim
-  | prim_set : typ -> prim
-  | prim_new : typ -> prim
-  | prim_new_array : typ -> prim
-  | prim_struct_access : typ -> field -> prim
-  | prim_array_access : typ -> prim
-  | prim_struct_get : typ -> field -> prim
-  | prim_array_get : typ -> prim
+  Inductive prim : Type :=
+    | prim_binop : binop -> prim
+    | prim_get : typ -> prim
+    | prim_set : typ -> prim
+    | prim_new : typ -> prim
+    | prim_new_array : typ -> prim
+    | prim_struct_access : typ -> field -> prim
+    | prim_array_access : typ -> prim
+    | prim_struct_get : typ -> field -> prim
+    | prim_array_get : typ -> prim
 \end{coqs}
 
 Examples of the semantics of our language compared to C:
@@ -391,16 +391,16 @@ which would correspond to the address:
 Some crucial definitions:
 
 \begin{coqs}
-Definition typdefctx := map typvar typ.
+  Definition typdefctx := map typvar typ.
 
-Record ll_typdefctx := make_ll_typdefctx {
-  typvar_sizes				: map typvar size;
-  fields_offsets	: map typvar (map field offset);
-  fields_order				: map typvar (list field) }.
+  Record ll_typdefctx := make_ll_typdefctx {
+    typvar_sizes				: map typvar size;
+    fields_offsets	: map typvar (map field offset);
+    fields_order				: map typvar (list field) }.
   
-Definition stack := Ctx.ctx val.
+  Definition stack := Ctx.ctx val.
 
-Definition state := map loc val.
+  Definition state := map loc val.
 \end{coqs}
 
 \bigskip
@@ -408,7 +408,7 @@ Definition state := map loc val.
 And the relation that defines the big-step reduction rules:
 
 \begin{coqs}
-red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
+  red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
 \end{coqs}
 
 \end{frame}
@@ -421,15 +421,15 @@ red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm
 The allowed types are:
 
 \begin{coqs}
-Inductive typ : Type :=
-  | typ_unit : typ
-  | typ_int : typ
-  | typ_double : typ
-  | typ_bool : typ
-  | typ_ptr : typ -> typ
-  | typ_array : typ -> option size -> typ
-  | typ_struct : map field typ -> typ
-  | typ_var : typvar -> typ.
+  Inductive typ : Type :=
+    | typ_unit : typ
+    | typ_int : typ
+    | typ_double : typ
+    | typ_bool : typ
+    | typ_ptr : typ -> typ
+    | typ_array : typ -> option size -> typ
+    | typ_struct : map field typ -> typ
+    | typ_var : typvar -> typ.
 \end{coqs}
 
 \bigskip
@@ -437,9 +437,9 @@ Inductive typ : Type :=
 With their corresponding definitions (analogous to stack and state):
 
 \begin{coqs}
-Definition gamma : Ctx.ctx typ.
+  Definition gamma : Ctx.ctx typ.
 
-Definition phi : map loc typ.
+  Definition phi : map loc typ.
 \end{coqs}
 
 \bigskip
@@ -447,7 +447,7 @@ Definition phi : map loc typ.
 Typing is defined as the following relation:
 
 \begin{coqs}
-typing		<==		typdefctx |times 	ll_typdefctx |times 	phi |times 	gamma |times 	trm |times	typ
+  typing		<==		typdefctx |times 	gamma |times 	phi |times 	trm |times	typ
 \end{coqs}
 
 \end{frame}
@@ -455,17 +455,22 @@ typing		<==		typdefctx |times 	ll_typdefctx |times 	phi |times 	gamma |times 	tr
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Language overview - type soundness}
+\frametitle{Language overview - properties}
 
-An example of a theorem that we proved as a sanity check:
+Need to think of something...
 
-\begin{coqs}
-Theorem type_soundness : forall C LLC m t v T,
-  red C LLC nil empty t m v ->
-  typing C LLC empty nil t T ->
-  exists f, typing_val C LLC f v T 
-  	/\  state_typing C LLC f m.
-\end{coqs}
+An approximation to type safety:
+\begin{coq}
+  Theorem type_soundness : forall C LLC m t v T,
+    red C LLC nil empty t m v ->
+    typing C nil empty t T ->
+    exists f, typing_val C f v T 
+  	  /\  state_typing C f m.
+\end{coq}
+
+\bigskip
+
+
 
 \end{frame}
 
@@ -484,15 +489,6 @@ group
 \frametitle{Transformations - tiling}
 
 tiling
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Transformations - adding indirection}
-
-adding indirection
 
 \end{frame}
 
