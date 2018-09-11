@@ -255,10 +255,10 @@ typedef struct {
 \textbf{\small 2. Array tiling}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
-int[N] a;
+int a[N];
 
 // After
-int[B][N / B] a';
+int a'[N / B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.45\linewidth}
@@ -335,10 +335,10 @@ typedef struct {
 \textbf{\small 2. Array tiling}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
-int[N] a;
+int a[N];
 
 // After
-int[B][N / B] a';
+int a'[N / B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
@@ -596,12 +596,123 @@ An approximation to type safety:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Transformations - grouping}
+\frametitle{Field grouping}
 
-group
+The arguments of the transformation are:
+\begin{itemize}
+	\item The name of the struct being changed.
+	\item The fields being grouped.
+	\item The name of the new struct that will contain said fields.
+	\item The new field holding the new struct.
+\end{itemize}
+
+\bigskip
+
+These are used to define a transformation for:
+\\[0.75em]
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item type definitions contexts,
+	\item accesses,
+	\item values,
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item terms,
+	\item states and
+	\item stacks.
+\end{itemize}
+\end{minipage}
 
 \end{frame}
 
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - typdefctx}
+
+We `update' the type definitions context as follows:
+
+\begin{coqs}
+Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
+  | tr_typdefctx_intro : forall Tfs Tfs' Tfsg Tt fs Tg fg C C',
+      gt = make_group_tr Tt fs Tg fg ->
+      dom C' = dom C \u \{Tg} ->
+      (* The original map from fields to types. *)
+      C[Tt] = typ_struct Tfs ->
+      (* The map for the new struct and for the grouped fields. *)
+      tr_struct_map gt Tfs Tfs' Tfsg ->
+      C'[Tt] = typ_struct Tfs' ->
+      C'[Tg] = typ_struct Tfsg ->
+      (* The other type variables stay the same. *)      
+      (forall T,
+        T \indom C ->
+        T <> Tt ->
+        C'[T] = C[T]) ->
+      tr_typdefctx gt C C'.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - accesses}
+
+For accesses, if we look at the interesting case:
+
+\begin{coqs}
+Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+  | tr_accesses_field_group : forall Tt fs fg Tg f a0 p a1 a2 p',
+      gt = make_group_tr Tt fs Tg fg ->
+      f \in fs ->
+      (* The access s.f *)
+      a0 = access_field (typ_var Tt) f ->
+      (* Becomes s'.fg.f *)
+      a1 = access_field (typ_var Tt) fg ->
+      a2 = access_field (typ_var Tg) f ->
+      tr_accesses gt p p' ->
+      tr_accesses gt (a0::p) (a1::a2::p')
+\end{coqs}
+
+\bigskip
+
+This is used in:
+
+\begin{coqs}
+Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+  | tr_val_abstract_ptr : forall l p p',
+      tr_accesses gt p p' ->
+      tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - accesses}
+
+For accesses, if we look at the interesting case:
+
+\begin{coqs}
+  | tr_val_struct_group : forall Tt Tg s s' fg fs sg,
+      gt = make_group_tr Tt fs Tg fg ->
+      fs \c dom s ->
+      fg \notindom s ->
+      dom s' = (dom s \- fs) \u \{fg} ->
+      dom sg = fs ->
+      (forall f,
+        f \indom sg ->
+        tr_val gt s[f] sg[f]) ->
+      (forall f,
+        f \notin fs ->
+        f \indom s ->
+        tr_val gt s[f] s'[f]) ->
+      s'[fg] = val_struct (typ_var Tg) sg ->
+      tr_val gt (val_struct (typ_var Tt) s) (val_struct (typ_var Tt) s')
+\end{coqs}
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
