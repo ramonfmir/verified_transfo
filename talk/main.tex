@@ -381,6 +381,7 @@ typedef struct {
 
 \end{frame}
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Basic transformations - AoS to SoA}
@@ -501,12 +502,6 @@ which would correspond to the address:
 \begin{frame}[fragile]
 \frametitle{Language overview - semantics}
 
-%Maybe a couple or three slides for this.
-
-%Give overview of typing.
-
-%Use this theorem to explain the different parts of semantics and typing.
-
 Some crucial definitions:
 
 \begin{coqs}
@@ -576,8 +571,6 @@ Typing is defined as the following relation:
 \begin{frame}[fragile]
 \frametitle{Language overview - properties}
 
-Need to think of something...
-
 An approximation to type safety:
 \begin{coq}
   Theorem type_soundness : forall C LLC m t v T,
@@ -589,7 +582,7 @@ An approximation to type safety:
 
 \bigskip
 
-
+TODO: Need to think of something...
 
 \end{frame}
 
@@ -837,9 +830,37 @@ In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/N][i\%
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Array tiling - some specifics}
+
+A couple of important definitions used throughout:
+
+\begin{coq}
+Definition nb_tiles (K I J:int) : Prop :=
+  J = I / K + If (I mod K = 0) then 0 else 1.
+
+Definition tiled_indices (I J K i j k:int) : Prop :=
+		i = j * K + k
+	/\	index I i
+	/\	index J j
+  	/\	index K k.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{AoS to SoA}
 
-AoS to SoA
+For this transformation, we need to know:
+\begin{itemize}
+	\item The name of the struct being changed.
+	\item The name of the array being changed.
+\end{itemize}
+
+\bigskip
+
+TODO: Add something more here
 
 \end{frame}
 
@@ -848,9 +869,65 @@ AoS to SoA
 \begin{frame}[fragile]
 \frametitle{High-to-low level transformation}
 
-A few slides on this.
+The grammar is extended with:
+
+\begin{coqs}
+  Inductive val : Type :=
+    | val_concrete_ptr : loc -> offset -> val
+    | val_words : list word -> val.
+  
+  Inductive prim : Type :=
+    | prim_ll_get : typ -> prim
+    | prim_ll_set : typ -> prim
+    | prim_ll_new : typ -> prim
+    | prim_ll_access : typ -> prim.
+\end{coqs}
+
+\bigskip
+
+There are two sides of this transformation:
+\begin{itemize}
+	\item The memory.
+	\item The programs.
+\end{itemize}
 
 \end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-to-low level transformation - OK}
+
+We need to ensure consistency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
+
+\begin{itemize}
+	\item The type variable sizes in \texttt{LLC} math with the types in \texttt{C}.
+	\item The field offsets match with the order of the fields and the sizes of each of their types.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-to-low level transformation - memory}
+
+\begin{center}
+
+\begin{figure}
+	\includegraphics[scale=0.31]{images/high_level_memory}
+	\caption{High-level memory.}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[scale=0.31]{images/low_level_memory}
+	\caption{Low-level memory.}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
