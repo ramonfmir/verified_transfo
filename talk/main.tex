@@ -630,6 +630,33 @@ These are used to define a transformation for:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Field grouping - OK}
+
+We first need a way of checking that the transformation is well-defined.
+
+\begin{coqs}
+Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
+  | group_tr_ok_intros : forall Tfs Tt fs fg Tg gt C,
+      gt = make_group_tr Tt fs Tg fg ->
+      Tt \indom C ->
+      (* The struct Tt can be transformed. *)
+      C[Tt] = typ_struct Tfs ->
+      Tg \notindom C ->
+      fs <== dom Tfs ->
+      fg \notindom Tfs ->
+      (* Tt doesn't appear anywhere else in the typdefctx. *)
+      (forall Tv,
+        Tv \indom C ->
+        Tv <> Tt ->
+        ~ free_typvar C Tt C[Tv]) ->
+      group_tr_ok gt C.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Field grouping - typdefctx}
 
 We `update' the type definitions context as follows:
@@ -692,51 +719,127 @@ Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Field grouping - accesses}
+\frametitle{Field grouping - values}
 
-For accesses, if we look at the interesting case:
+And if we look at the struct grouping case:
 
 \begin{coqs}
+Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
   | tr_val_struct_group : forall Tt Tg s s' fg fs sg,
       gt = make_group_tr Tt fs Tg fg ->
-      fs \c dom s ->
+      fs <== dom s ->
       fg \notindom s ->
       dom s' = (dom s \- fs) \u \{fg} ->
       dom sg = fs ->
+      (* Contents of the grouped fields. *)
+      s'[fg] = val_struct (typ_var Tg) sg ->
       (forall f,
         f \indom sg ->
         tr_val gt s[f] sg[f]) ->
+      (* Contents of the rest of the fields. *)      
       (forall f,
         f \notin fs ->
         f \indom s ->
         tr_val gt s[f] s'[f]) ->
-      s'[fg] = val_struct (typ_var Tg) sg ->
       tr_val gt (val_struct (typ_var Tt) s) (val_struct (typ_var Tt) s')
 \end{coqs}
 
+\end{frame}
+
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Transformations - tiling}
+\frametitle{Field grouping - terms}
 
-tiling
+Finally, we also need to change some of the terms. In particular, we look at the struct access case:
+
+\begin{coqs}
+Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
+  | tr_trm_struct_access_group : forall fs Tt fg Tg f op0 t1 op2 op1 t1',
+      gt = make_group_tr Tt fs Tg fg ->
+      f \in fs ->
+      (* The access s.f *)
+      op0 = prim_struct_access (typ_var Tt) f ->
+      (* The access s'.fg.f *)
+      op1 = prim_struct_access (typ_var Tt) fg ->
+      op2 = prim_struct_access (typ_var Tg) f ->
+      tr_trm gt t1 t1' ->
+      tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
+\end{coqs}
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Transformations - AoS to SoA}
+\frametitle{Field grouping - main theorem}
+
+In the end the theorem that we prove is:
+
+\begin{coq}
+Theorem red_tr: forall gt LLC C C' t t' v S S' m1 m1' m2,
+  red C LLC S m1 t m2 v ->
+  group_tr_ok gt C ->
+  tr_typdefctx gt C C' ->
+  tr_trm gt t t' ->
+  tr_stack gt S S' ->
+  tr_state gt m1 m1' ->
+  wf_typdefctx C ->
+  wf_trm C t ->
+  wf_stack C S ->
+  wf_state C m1 ->
+  ~ is_error v ->
+  exists v' m2',				tr_val gt v v'
+			/\	tr_state gt m2 m2'
+			/\	red C' LLC S' m1' t' m2' v'.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Array tiling}
+
+We need to know:
+\begin{itemize}
+	\item The name of the array being changed.
+	\item The new name for the tiles.
+	\item The size of the tiles. 
+\end{itemize}
+
+\bigskip
+
+Similarly, we also define:
+\\[0.75em]
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tiling\_tr\_ok},
+	\item \texttt{tr\_typdefctx},
+	\item \texttt{tr\_accesses},
+	\item \texttt{tr\_val},
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tr\_stack},
+	\item \texttt{tr\_state} and
+	\item \texttt{tr\_trm}.
+\end{itemize}
+\end{minipage}
+
+\bigskip
+
+In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/N][i\%N]}.
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{AoS to SoA}
 
 AoS to SoA
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Transformations - proof}
-
-statement and proof
 
 \end{frame}
 
