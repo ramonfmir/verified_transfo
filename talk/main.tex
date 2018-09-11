@@ -933,7 +933,7 @@ We need to ensure consistency between the type definition context (\texttt{C}) a
 \begin{frame}[fragile]
 \frametitle{High-to-low level transformation - program}
 
-Details on the transformation of terms.
+TODO: Details on the transformation of terms.
 
 \end{frame}
 
@@ -942,7 +942,7 @@ Details on the transformation of terms.
 \begin{frame}[fragile]
 \frametitle{High-to-low level transformation - proof}
 
-Main theorem.
+TODO: Main theorem.
 
 \end{frame}
 
@@ -951,7 +951,29 @@ Main theorem.
 \begin{frame}[fragile]
 \frametitle{Project extent}
 
-what has been done and what hasn't quite and statistics
+Accomplished goals:
+\\[0.7em]
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item Defined a high-level language convenient to argue about data-layout transformations.
+	\item Found a way to connect it to realistic low-level semantics.
+	\item Basically proved the correctness of:
+	\begin{itemize}
+		\item Field grouping.
+		\item Array tiling.
+		\item AoS to SoA.
+	\end{itemize}
+\end{itemize}
+
+\bigskip
+
+Some statistics:
+\begin{center}
+\begin{tabular}{ccc}
+lines of spec & lines of proof & lines of comments \\
+2637 & 2623 & 606
+\end{tabular}
+\end{center}
 
 \end{frame}
 
@@ -960,18 +982,19 @@ what has been done and what hasn't quite and statistics
 \begin{frame}[fragile]
 \frametitle{Future work}
 
-for instance functions etc, combining them. Code realisations...
+Next steps:
+\\[0.7em]
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item The transformation `adding indirection'.
+	\item Realizations of the transformations as functions.
+	\item Some arithmetic results in the tiling and low-level transformations.
+	\item Work on loops and add loop transformations.
+	\item Connect the low-level language with CompCert.
+\end{itemize}
 
 \end{frame}
 
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Conclusion}
-
-conclusion
-
-\end{frame}
 
 %------------------------------------------------------------------------------
 \frame{\titlepage}
