@@ -255,10 +255,10 @@ typedef struct {
 \textbf{\small 2. Array tiling}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
-int a[N];
+typedef int a[N];
 
 // After
-int a'[N / B][B];
+typedef int a'[N / B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.45\linewidth}
@@ -335,10 +335,10 @@ typedef struct {
 \textbf{\small 2. Array tiling}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
-int a[N];
+typedef int a[N];
 
 // After
-int a'[N / B][B];
+typedef int a'[N / B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
@@ -571,18 +571,30 @@ Typing is defined as the following relation:
 \begin{frame}[fragile]
 \frametitle{Language overview - properties}
 
-An approximation to type safety:
-\begin{coq}
-  Theorem type_soundness : forall C LLC m t v T,
-    red C LLC nil empty t m v ->
-    typing C nil empty t T ->
-    exists f, typing_val C f v T 
-  	  /\  state_typing C f m.
-\end{coq}
+For memory accesses, we know the type of the data being manipulated:
+\begin{coqs}
+Inductive typing_val (C:typdefctx) (f:phi) : val -> typ -> Prop :=
+  | typing_val_abstract_ptr : forall l p T,
+      read_phi C f l p T ->
+      typing_val C f (val_abstract_ptr l p) (typ_ptr T)
+
+Inductive typing (C:typdefctx) : gamma -> phi -> trm -> typ -> Prop :=
+  | typing_get : forall G f T t1,
+      typing C G f t1 (typ_ptr T) ->
+      typing C G f (trm_app (prim_get T) (t1::nil)) T
+\end{coqs}
 
 \bigskip
 
-TODO: Need to think of something...
+Typing result for full execution:
+\begin{coqs}
+  Theorem type_soundness : forall C LLC m t v T,
+    red C LLC empty_stack empty_state t m v ->
+    typing C empty_gamma empty_phi t T ->
+    ~ is_error v ->
+    exists f, typing_val C f v T 
+  	  /\  state_typing C f m.
+\end{coqs}
 
 \end{frame}
 
@@ -592,27 +604,52 @@ TODO: Need to think of something...
 \frametitle{Field grouping}
 
 The arguments of the transformation are:
+\begin{minipage}{0.55\linewidth}
 \begin{itemize}
-	\item The name of the struct being changed.
-	\item The fields being grouped.
-	\item The name of the new struct that will contain said fields.
-	\item The new field holding the new struct.
+	\setlength\itemsep{1.5em}
+	\item The struct name \texttt{s}.
+	\item The fields \texttt{b} and \texttt{c}.
+	\item The new struct name \texttt{sg}.
+	\item The new field \texttt{fg}.
 \end{itemize}
+\end{minipage}%
+\begin{minipage}{0.35\linewidth}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b, c;
+} s;
+
+// After
+typedef struct {
+  int b, c;
+} sg;
+
+typedef struct {
+  int a; sg fg;
+} s';
+\end{lstlisting}
+\end{minipage}
 
 \bigskip
 
 These are used to define a transformation for:
 \\[0.75em]
-\begin{minipage}{0.45\linewidth}
+\begin{minipage}{0.3\linewidth}
+
 \begin{itemize}
-	\item type definitions contexts,
-	\item accesses,
+	\item terms,
 	\item values,
 \end{itemize}
 \end{minipage}%
-\begin{minipage}{0.45\linewidth}
+\begin{minipage}{0.3\linewidth}
 \begin{itemize}
-	\item terms,
+	\item accesses,
+	\item contexts,
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.3\linewidth}
+\begin{itemize}
 	\item states and
 	\item stacks.
 \end{itemize}
@@ -623,9 +660,96 @@ These are used to define a transformation for:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Field grouping - terms}
+
+We start with the transformation of the source code. In particular, we look at the struct access case:
+
+\begin{coqs}
+Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
+  | tr_trm_struct_access_group : forall fs Tt fg Tg f op0 t1 op2 op1 t1',
+      gt = make_group_tr Tt fs Tg fg ->
+      f \in fs ->
+      (* The access s.f *)
+      op0 = prim_struct_access (typ_var Tt) f ->
+      (* The access s'.fg.f *)
+      op1 = prim_struct_access (typ_var Tt) fg ->
+      op2 = prim_struct_access (typ_var Tg) f ->
+      tr_trm gt t1 t1' ->
+      tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - values}
+
+Values need to be changed in the source code. For instance, if we look at the interesting case:
+
+\begin{coqs}
+Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+  | tr_val_struct_group : forall Tt Tg s s' fg fs sg,
+      gt = make_group_tr Tt fs Tg fg ->
+      fs <== dom s ->
+      fg \notindom s ->
+      dom s' = (dom s \- fs) \u \{fg} ->
+      dom sg = fs ->
+      (* Contents of the grouped fields. *)
+      s'[fg] = val_struct (typ_var Tg) sg ->
+      (forall f \indom sg, tr_val gt s[f] sg[f]) ->
+      (* Contents of the rest of the fields. *)      
+      (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
+      tr_val gt (val_struct (typ_var Tt) s) (val_struct (typ_var Tt) s')
+\end{coqs}
+
+\bigskip
+
+And in the stack and the memory so, from \texttt{tr\_val}, we naturally define \texttt{tr\_stack} and \texttt{tr\_state}.
+
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - accesses}
+
+For accesses, if we look at the interesting case:
+
+\begin{coqs}
+Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+  | tr_accesses_field_group : forall Tt fs fg Tg f a0 p a1 a2 p',
+      gt = make_group_tr Tt fs Tg fg ->
+      f \in fs ->
+      (* The access s.f *)
+      a0 = access_field (typ_var Tt) f ->
+      (* Becomes s'.fg.f *)
+      a1 = access_field (typ_var Tt) fg ->
+      a2 = access_field (typ_var Tg) f ->
+      tr_accesses gt p p' ->
+      tr_accesses gt (a0::p) (a1::a2::p')
+\end{coqs}
+
+\bigskip
+
+This is used in:
+
+\begin{coqs}
+Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+  | tr_val_abstract_ptr : forall l p p',
+      tr_accesses gt p p' ->
+      tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Field grouping - OK}
 
-We first need a way of checking that the transformation is well-defined.
+We need a way of checking that the transformation is well-defined.
 
 \begin{coqs}
 Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
@@ -678,99 +802,35 @@ Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Field grouping - accesses}
-
-For accesses, if we look at the interesting case:
-
-\begin{coqs}
-Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
-  | tr_accesses_field_group : forall Tt fs fg Tg f a0 p a1 a2 p',
-      gt = make_group_tr Tt fs Tg fg ->
-      f \in fs ->
-      (* The access s.f *)
-      a0 = access_field (typ_var Tt) f ->
-      (* Becomes s'.fg.f *)
-      a1 = access_field (typ_var Tt) fg ->
-      a2 = access_field (typ_var Tg) f ->
-      tr_accesses gt p p' ->
-      tr_accesses gt (a0::p) (a1::a2::p')
-\end{coqs}
-
-\bigskip
-
-This is used in:
-
-\begin{coqs}
-Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-  | tr_val_abstract_ptr : forall l p p',
-      tr_accesses gt p p' ->
-      tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - values}
-
-And if we look at the struct grouping case:
-
-\begin{coqs}
-Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-  | tr_val_struct_group : forall Tt Tg s s' fg fs sg,
-      gt = make_group_tr Tt fs Tg fg ->
-      fs <== dom s ->
-      fg \notindom s ->
-      dom s' = (dom s \- fs) \u \{fg} ->
-      dom sg = fs ->
-      (* Contents of the grouped fields. *)
-      s'[fg] = val_struct (typ_var Tg) sg ->
-      (forall f,
-        f \indom sg ->
-        tr_val gt s[f] sg[f]) ->
-      (* Contents of the rest of the fields. *)      
-      (forall f,
-        f \notin fs ->
-        f \indom s ->
-        tr_val gt s[f] s'[f]) ->
-      tr_val gt (val_struct (typ_var Tt) s) (val_struct (typ_var Tt) s')
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - terms}
-
-Finally, we also need to change some of the terms. In particular, we look at the struct access case:
-
-\begin{coqs}
-Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
-  | tr_trm_struct_access_group : forall fs Tt fg Tg f op0 t1 op2 op1 t1',
-      gt = make_group_tr Tt fs Tg fg ->
-      f \in fs ->
-      (* The access s.f *)
-      op0 = prim_struct_access (typ_var Tt) f ->
-      (* The access s'.fg.f *)
-      op1 = prim_struct_access (typ_var Tt) fg ->
-      op2 = prim_struct_access (typ_var Tg) f ->
-      tr_trm gt t1 t1' ->
-      tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
 \frametitle{Field grouping - main theorem}
 
 In the end the theorem that we prove is:
 
 \begin{coq}
-Theorem red_tr: forall gt LLC C C' t t' v S S' m1 m1' m2,
+Theorem red_tr: forall gt LLC C C' t t' v m2,
+  red C LLC empty_stack empty_state t m2 v ->
+  group_tr_ok gt C ->
+  tr_typdefctx gt C C' ->
+  tr_trm gt t t' ->
+  wf_typdefctx C ->
+  wf_trm C t ->
+  ~ is_error v ->
+  exists v' m2',				tr_val gt v v'
+			/\	tr_state gt m2 m2'
+			/\	red C' LLC S' m1' t' m2' v'.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - induction}
+
+To make the proof work we strengthen it as follows:
+
+\begin{coq}
+Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
   red C LLC S m1 t m2 v ->
   group_tr_ok gt C ->
   tr_typdefctx gt C C' ->
@@ -796,9 +856,9 @@ Theorem red_tr: forall gt LLC C C' t t' v S S' m1 m1' m2,
 
 We need to know:
 \begin{itemize}
-	\item The name of the array being changed.
-	\item The new name for the tiles.
-	\item The size of the tiles. 
+	\item The name of the array being changed (\texttt{Ta}).
+	\item The new name for the tiles (\texttt{Tt}).
+	\item The size of the tiles (\texttt{K}). 
 \end{itemize}
 
 \bigskip
@@ -823,7 +883,7 @@ Similarly, we also define:
 
 \bigskip
 
-In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/N][i\%N]}.
+In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/K][i\%K]} where \texttt{t} has type \texttt{typ\_var Ta}.
 
 \end{frame}
 
@@ -832,7 +892,16 @@ In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/N][i\%
 \begin{frame}[fragile]
 \frametitle{Array tiling - some specifics}
 
-A couple of important definitions used throughout:
+We use:
+\begin{itemize}
+	\item \texttt{I} for the length of the original array,
+	\item \texttt{J} for the length of the array of tiles and
+	\item \texttt{K} for the length of the tile.
+\end{itemize}
+
+\bigskip
+
+These are related by the definitions:
 
 \begin{coq}
 Definition nb_tiles (K I J:int) : Prop :=
@@ -850,17 +919,59 @@ Definition tiled_indices (I J K i j k:int) : Prop :=
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Array tiling - key components}
+
+
+
+The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by: 
+
+\begin{coqs}
+  forall i j k aK,		tiled_indices I J K i j k ->
+				  aJ[j] = (val_array (typ_var Tt) aK) ->
+				  tr_val tt aI[i] aK[k]
+\end{coqs}
+
+\bigskip
+
+For the translation accesses and primitive operations, the aim is for all the accesses
+
+\begin{coqs}
+  l1 ++ (access_array (typ_var Ta) i)::l2
+\end{coqs}
+
+to be transformed to
+
+\begin{coqs}
+  l1 ++ (access_array (typ_var Ta) (i/K))::(access_array Tt (i mod K))::l2.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{AoS to SoA}
 
 For this transformation, we need to know:
 \begin{itemize}
-	\item The name of the struct being changed.
-	\item The name of the array being changed.
+	\item The name of the array being changed (\texttt{Ta}).
+	\item The fields names and types of the struct being changed (\texttt{Tfs}).
+	\item The size of the array (\texttt{K}).
 \end{itemize}
 
 \bigskip
 
-TODO: Add something more here
+This transformation is similar to array tiling in many ways. One key difference is that the accesses
+
+\begin{coqs}
+  l1 ++ (access_array Ta i)::(access_field Tfs[f] f)::l2
+\end{coqs}
+
+are transformed to
+
+\begin{coqs}
+  l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
+\end{coqs}
 
 \end{frame}
 
