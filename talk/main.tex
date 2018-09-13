@@ -522,8 +522,12 @@ Some crucial definitions:
 And the relation that defines the big-step reduction rules:
 
 \begin{coqs}
-  red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
+Inductive red : typdefctx -> stack -> state -> trm -> state -> val -> Prop
 \end{coqs}
+
+%\begin{coqs}
+%  red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
+%\end{coqs}
 
 \end{frame}
 
@@ -561,8 +565,12 @@ With their corresponding definitions (analogous to stack and state):
 Typing is defined as the following relation:
 
 \begin{coqs}
-  typing		<==		typdefctx |times 	gamma |times 	phi |times 	trm |times	typ
+Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
 \end{coqs}
+
+%\begin{coqs}
+%  typing		<==		typdefctx |times 	gamma |times 	phi |times 	trm |times	typ
+%\end{coqs}
 
 \end{frame}
 
@@ -747,30 +755,6 @@ Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Field grouping - OK}
-
-We need a way of checking that the transformation is well-defined.
-
-\begin{coqs}
-Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
-  | group_tr_ok_intros : forall Tfs Tt fs fg Tg gt C,
-      gt = make_group_tr Tt fs Tg fg ->
-      Tt \indom C ->
-      (* The struct Tt can be transformed. *)
-      C[Tt] = typ_struct Tfs ->
-      Tg \notindom C ->
-      fs <== dom Tfs ->
-      fg \notindom Tfs ->
-      (* Tt doesn't appear anywhere else in the typdefctx. *)
-      (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
-      group_tr_ok gt C.
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
 \frametitle{Field grouping - typdefctx}
 
 We `update' the type definitions context as follows:
@@ -796,22 +780,54 @@ Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Field grouping - main theorem}
+\frametitle{Field grouping - sanity checks}
+
+We need a way of checking that the transformation is well-defined.
+
+\begin{coqs}
+Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
+  | group_tr_ok_intros : forall Tfs Tt fs fg Tg gt C,
+      gt = make_group_tr Tt fs Tg fg ->
+      Tt \indom C ->
+      (* The struct Tt can be transformed. *)
+      C[Tt] = typ_struct Tfs ->
+      Tg \notindom C ->
+      fs <== dom Tfs ->
+      fg \notindom Tfs ->
+      (* Tt doesn't appear anywhere else in the typdefctx. *)
+      (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
+      group_tr_ok gt C.
+\end{coqs}
+
+\bigskip
+
+Regardless of \texttt{group\_tr}, we need to check that everything is well-formed:
+\begin{itemize}
+	\item The \texttt{typdefctx} is well-formed if the type definitions are productive.
+	\item Terms, values, stacks and states are well-formed if all the types that appear in them exist.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - theorem}
 
 In the end the theorem that we prove is:
 
 \begin{coq}
-Theorem red_tr: forall gt LLC C C' t t' v m2,
-  red C LLC empty_stack empty_state t m2 v ->
+Theorem red_tr: forall gt LLC C C' t t' v m,
+  red C LLC empty_stack empty_state t m v ->
+  ~ is_error v ->
   group_tr_ok gt C ->
   tr_typdefctx gt C C' ->
   tr_trm gt t t' ->
   wf_typdefctx C ->
   wf_trm C t ->
-  ~ is_error v ->
-  exists v' m2',				tr_val gt v v'
-			/\	tr_state gt m2 m2'
-			/\	red C' LLC S' m1' t' m2' v'.
+  exists v' m',		tr_val gt v v'
+		 /\ tr_state gt m m'
+		 /\ red C' LLC empty_stack empty_state t' m' v'.
 \end{coq}
 
 \end{frame}
@@ -826,6 +842,7 @@ To make the proof work we strengthen it as follows:
 \begin{coq}
 Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
   red C LLC S m1 t m2 v ->
+  ~ is_error v ->
   group_tr_ok gt C ->
   tr_typdefctx gt C C' ->
   tr_trm gt t t' ->
@@ -835,7 +852,6 @@ Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
   wf_trm C t ->
   wf_stack C S ->
   wf_state C m1 ->
-  ~ is_error v ->
   exists v' m2',				tr_val gt v v'
 			/\	tr_state gt m2 m2'
 			/\	red C' LLC S' m1' t' m2' v'.
@@ -998,7 +1014,7 @@ There are two sides of this transformation:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-to-low level transformation - OK}
+\frametitle{High-level to low-level transformation - LLC}
 
 We need to ensure consistency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
 
@@ -1012,7 +1028,7 @@ We need to ensure consistency between the type definition context (\texttt{C}) a
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-to-low level transformation - memory}
+\frametitle{High-level to low-level transformation - memory}
 
 \begin{center}
 
@@ -1033,18 +1049,57 @@ We need to ensure consistency between the type definition context (\texttt{C}) a
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-to-low level transformation - program}
+\frametitle{High-level to low-level transformation - program}
 
-TODO: Details on the transformation of terms.
+The values in the source code  are all kept the same except for pointers:
+
+\begin{coqs}
+Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop :=
+	| tr_val_abstract_ptr : forall p l o,
+      	tr_ll_accesses C LLC p o ->
+      	tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
+\end{coqs}
+
+\bigskip
+
+For terms, as an example,
+
+\begin{coqs}
+  trm_app (prim_struct_access T f) (t::nil)
+\end{coqs}
+
+becomes
+
+\begin{coqs}
+  trm_app (prim_ll_access T[f]) (t'::(field_offset T f)::nil).
+\end{coqs}
+
+\bigskip
+
+The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-to-low level transformation - proof}
+\frametitle{High-level to low-level transformation - theorem}
 
-TODO: Main theorem.
+The goal is to prove:
+\begin{coq}
+Theorem red_tr_warmup : forall C LLC T m a v t' m' v',
+  red C LLC empty_stack empty_state t m v ->
+  typing C empty_gamma empty_phi t T ->
+  ~ is_error v ->
+  ll_typdefctx_ok C LLC ->
+  tr_trm C LLC a t t' ->
+  wf_typdefctx C ->
+  wf_trm C t ->
+  wf_typ C T ->
+  exists v' m',		tr_state C LLC a m m'
+  		 /\ tr_val C LLC a v v'
+  		 /\ red C LLC empty_stack empty_state t' m' v'.
+\end{coq}
 
 \end{frame}
 
@@ -1073,7 +1128,7 @@ Some statistics:
 \begin{center}
 \begin{tabular}{ccc}
 lines of spec & lines of proof & lines of comments \\
-2637 & 2623 & 606
+2723 & 3103 & 668
 \end{tabular}
 \end{center}
 
