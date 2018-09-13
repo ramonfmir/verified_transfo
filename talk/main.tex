@@ -762,10 +762,7 @@ Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
       fs <== dom Tfs ->
       fg \notindom Tfs ->
       (* Tt doesn't appear anywhere else in the typdefctx. *)
-      (forall Tv,
-        Tv \indom C ->
-        Tv <> Tt ->
-        ~ free_typvar C Tt C[Tv]) ->
+      (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
       group_tr_ok gt C.
 \end{coqs}
 
@@ -790,10 +787,7 @@ Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
       C'[Tt] = typ_struct Tfs' ->
       C'[Tg] = typ_struct Tfsg ->
       (* The other type variables stay the same. *)      
-      (forall T,
-        T \indom C ->
-        T <> Tt ->
-        C'[T] = C[T]) ->
+      (forall T \indom C \ {Tt}, C'[T] = C[T]) ->
       tr_typdefctx gt C C'.
 \end{coqs}
 
@@ -948,30 +942,27 @@ to be transformed to
 \end{frame}
 
 
+
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{AoS to SoA}
+\frametitle{High-level transformations - summary}
 
-For this transformation, we need to know:
+So far we have presented:
+
 \begin{itemize}
-	\item The name of the array being changed (\texttt{Ta}).
-	\item The fields names and types of the struct being changed (\texttt{Tfs}).
-	\item The size of the array (\texttt{K}).
+	\setlength\itemsep{1.5em}
+	\item Field grouping.
+	\item Array tiling.
+	\item AoS to SoA.
 \end{itemize}
 
 \bigskip
 
-This transformation is similar to array tiling in many ways. One key difference is that the accesses
+The correctness of these is proved (up to a couple axioms). 
 
-\begin{coqs}
-  l1 ++ (access_array Ta i)::(access_field Tfs[f] f)::l2
-\end{coqs}
+\bigskip
 
-are transformed to
-
-\begin{coqs}
-  l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
-\end{coqs}
+\textbf{Problem}: This could all be just a hack if we don't link it with a more concrete, CompCert-style semantics...
 
 \end{frame}
 
