@@ -65,9 +65,9 @@
 
 Challenges:
 \begin{itemize}
-	\item Exploit data-level parallelism.
-	\item Use domain-specific knowledge of the code.
-	\item Do it without introducing any bugs.
+	\item Exploit data-level parallelism. \pause
+	\item Use domain-specific knowledge of the code. \pause
+	\item Do it without introducing any bugs. \pause
 \end{itemize}
 
 \end{frame}
@@ -195,7 +195,7 @@ In short, the transformations we have seen are:
 	\item AoS to AoSoA.
 \end{itemize}
 
-\bigskip
+\bigskip \pause
 
 Note that after all these changes, where we wrote:
 
@@ -218,12 +218,12 @@ Now we have to write:
 
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item Find the basic transformations that combined give rise to the ones we are interested in.\\
+	\item Find the basic transformations that combined give rise to the ones we are interested in.\\ \pause
 	\item Formalize a C-like language with arrays, structs and pointers.
 	\begin{itemize}
 		\item On a high-level, to simplify the proofs.
 		\item On a low-level, to be closer to the semantics of C.
-	\end{itemize}
+	\end{itemize} \pause
 	\item Define the transformations and prove their correctness.
 \end{itemize}
 
@@ -418,9 +418,9 @@ typedef struct {
 
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item \textbf{Peeling:} Field grouping twice.
-	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group.
-	\item \textbf{AoS to SoA:} AoS to SoA.
+	\item \textbf{Peeling:} Field grouping twice. \pause
+	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group. \pause
+	\item \textbf{AoS to SoA:} AoS to SoA. \pause
 	\item \textbf{AoS to AoSoA:} Array tiling and then AoS to SoA on the tiles.
 \end{itemize}
 
@@ -474,7 +474,7 @@ Inductive trm : Type :=
     | prim_struct_get : typ -> field -> prim
     | prim_array_get : typ -> prim
 \end{coqs}
-
+\pause
 Examples of the semantics of our language compared to C:
 
 \begin{Verbatim}[fontsize=\scriptsize]
@@ -517,7 +517,7 @@ Some crucial definitions:
   Definition state := map loc val.
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 And the relation that defines the big-step reduction rules:
 
@@ -550,7 +550,7 @@ The allowed types are:
     | typ_var : typvar -> typ.
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 With their corresponding definitions (analogous to stack and state):
 
@@ -560,7 +560,7 @@ With their corresponding definitions (analogous to stack and state):
   Definition phi : map loc typ.
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 Typing is defined as the following relation:
 
@@ -639,7 +639,7 @@ typedef struct {
 \end{lstlisting}
 \end{minipage}
 
-\bigskip
+\bigskip \pause
 
 These are used to define a transformation for:
 \\[0.75em]
@@ -799,11 +799,11 @@ Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
       group_tr_ok gt C.
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 Regardless of \texttt{group\_tr}, we need to check that everything is well-formed:
 \begin{itemize}
-	\item The \texttt{typdefctx} is well-formed if the type definitions are productive.
+	\item The \texttt{typdefctx} is well-formed if the type definitions are productive. \pause
 	\item Terms, values, stacks and states are well-formed if all the types that appear in them exist.
 \end{itemize}
 
@@ -871,7 +871,7 @@ We need to know:
 	\item The size of the tiles (\texttt{K}). 
 \end{itemize}
 
-\bigskip
+\bigskip \pause
 
 Similarly, we also define:
 \\[0.75em]
@@ -941,7 +941,7 @@ The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} i
 				  tr_val tt aI[i] aK[k]
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 For the translation accesses and primitive operations, the aim is for all the accesses
 
@@ -958,6 +958,33 @@ to be transformed to
 \end{frame}
 
 
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{AoS to SoA}
+
+For this transformation, we need to know:
+\begin{itemize}
+	\item The name of the array being changed (\texttt{Ta}).
+	\item The fields names and types of the struct being changed (\texttt{Tfs}).
+	\item The size of the array (\texttt{K}).
+\end{itemize}
+ 
+\bigskip \pause
+ 
+This transformation is similar to array tiling in many ways. One key difference is that the accesses
+ 
+\begin{coqs}
+  l1 ++ (access_array Ta i)::(access_field Tfs[f] f)::l2
+\end{coqs}
+
+are transformed to
+
+\begin{coqs}
+  l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
+\end{coqs}
+ 
+\end{frame}
+
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
@@ -972,11 +999,11 @@ So far we have presented:
 	\item AoS to SoA.
 \end{itemize}
 
-\bigskip
+\bigskip \pause
 
-The correctness of these is proved (up to a couple axioms). 
+The correctness of these is proved! \pause (up to a couple axioms)
 
-\bigskip
+\bigskip \pause
 
 \textbf{Problem}: This could all be just a hack if we don't link it with a more concrete, CompCert-style semantics...
 
@@ -985,7 +1012,7 @@ The correctness of these is proved (up to a couple axioms).
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-to-low level transformation}
+\frametitle{High-level to low-level transformation}
 
 The grammar is extended with:
 
@@ -1001,7 +1028,7 @@ The grammar is extended with:
     | prim_ll_access : typ -> prim.
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 There are two sides of this transformation:
 \begin{itemize}
@@ -1016,10 +1043,10 @@ There are two sides of this transformation:
 \begin{frame}[fragile]
 \frametitle{High-level to low-level transformation - LLC}
 
-We need to ensure consistency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
+We need to ensure coherency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
 
 \begin{itemize}
-	\item The type variable sizes in \texttt{LLC} math with the types in \texttt{C}.
+	\item The type variable sizes in \texttt{LLC} match with the types in \texttt{C}.
 	\item The field offsets match with the order of the fields and the sizes of each of their types.
 \end{itemize}
 
@@ -1060,7 +1087,7 @@ Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop
       	tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 For terms, as an example,
 
@@ -1074,7 +1101,7 @@ becomes
   trm_app (prim_ll_access T[f]) (t'::(field_offset T f)::nil).
 \end{coqs}
 
-\bigskip
+\bigskip \pause
 
 The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
 
@@ -1112,8 +1139,8 @@ Accomplished goals:
 \\[0.7em]
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item Defined a high-level language convenient to argue about data-layout transformations.
-	\item Found a way to connect it to realistic low-level semantics.
+	\item Defined a high-level language convenient to argue about data-layout transformations. \pause
+	\item Found a way to connect it to realistic low-level semantics. \pause
 	\item Basically proved the correctness of:
 	\begin{itemize}
 		\item Field grouping.
@@ -1122,7 +1149,7 @@ Accomplished goals:
 	\end{itemize}
 \end{itemize}
 
-\bigskip
+\bigskip \pause
 
 Some statistics:
 \begin{center}
@@ -1143,10 +1170,10 @@ Next steps:
 \\[0.7em]
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item The transformation `adding indirection'.
-	\item Realizations of the transformations as functions.
-	\item Some arithmetic results in the tiling and low-level transformations.
-	\item Work on loops and add loop transformations.
+	\item The transformation `adding indirection'. \pause
+	\item Realizations of the transformations as functions. \pause
+	\item Some arithmetic results in the tiling and low-level transformations. \pause
+	\item Work on loops and add loop transformations.\pause
 	\item Connect the low-level language with CompCert.
 \end{itemize}
 

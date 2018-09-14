@@ -4,10 +4,10 @@ Next steps:
 \\[0.7em]
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item The transformation `adding indirection'.
-	\item Realizations of the transformations as functions.
-	\item Some arithmetic results in the tiling and low-level transformations.
-	\item Work on loops and add loop transformations.
+	\item The transformation `adding indirection'. \pause
+	\item Realizations of the transformations as functions. \pause
+	\item Some arithmetic results in the tiling and low-level transformations. \pause
+	\item Work on loops and add loop transformations.\pause
 	\item Connect the low-level language with CompCert.
 \end{itemize}
 
