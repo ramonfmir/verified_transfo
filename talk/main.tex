@@ -614,9 +614,9 @@ The arguments of the transformation are:
 \begin{minipage}{0.55\linewidth}
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item The struct name \texttt{s}.
-	\item The fields \texttt{b} and \texttt{c}.
-	\item The new struct name \texttt{sg}.
+	\item The struct name \texttt{Ts}.
+	\item The fields \texttt{b} and \texttt{c} (\texttt{fs}).
+	\item The new struct name \texttt{Tg}.
 	\item The new field \texttt{fg}.
 \end{itemize}
 \end{minipage}%
@@ -625,16 +625,16 @@ The arguments of the transformation are:
 // Before
 typedef struct {
   int a, b, c;
-} s;
+} Ts;
 
 // After
 typedef struct {
   int b, c;
-} sg;
+} Tg;
 
 typedef struct {
-  int a; sg fg;
-} s';
+  int a; Tg fg;
+} Ts;
 \end{lstlisting}
 \end{minipage}
 
@@ -788,9 +788,9 @@ We need a way of checking that the transformation is well-defined.
 Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
   | group_tr_ok_intros : forall Tfs Ts fs fg Tg gt C,
       gt = make_group_tr Ts fs Tg fg ->
-      Tt \indom C ->
+      Ts \indom C ->
       (* The struct Ts can be transformed. *)
-      C[Tt] = typ_struct Tfs ->
+      C[Ts] = typ_struct Tfs ->
       Tg \notindom C ->
       fs <== dom Tfs ->
       fg \notindom Tfs ->
