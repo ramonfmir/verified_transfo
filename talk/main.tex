@@ -61,13 +61,13 @@
 \end{minipage}
 \end{figure}
 
-\bigskip \pause
+\bigskip
 
 Challenges:
 \begin{itemize}
-	\item Exploit data-level parallelism. \pause
-	\item Use domain-specific knowledge of the code. \pause
-	\item Do it without introducing any bugs. \pause
+	\item Exploit data-level parallelism.
+	\item Use domain-specific knowledge of the code.
+	\item Do it without introducing any bugs.
 \end{itemize}
 
 \end{frame}
@@ -85,9 +85,9 @@ Challenges:
     float vx, vy, vz, c, m, v;
   } particle;
   
-  particle data[NUM_PARTICLES];
+  particle data[N];
   
-  for (int i = 0; i < NUM_PARTICLES; i++) {
+  for (int i = 0; i < N; i++) {
     // Some calculation
   }
 \end{lstlisting}
@@ -113,7 +113,7 @@ Suppose that the calculation uses mainly the position.
     cold_fields *other;
   } particle;
   
-  particle data[NUM_PARTICLES];
+  particle data[N];
 \end{lstlisting}
 
 \end{frame}
@@ -134,8 +134,8 @@ Further suppose that the intial `particle' record is not used as part of a dynam
     float x, y, z;
   } hot_fields;
 
-  cold_fields other_data[NUM_PARTICLES];
-  hot_fields pos_data[NUM_PARTICLES];
+  cold_fields other_data[N];
+  hot_fields pos_data[N];
 \end{lstlisting}
 
 \end{frame}
@@ -151,9 +151,9 @@ Now, say that we want to take advantage of vector instructions.
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
-    float x[NUM_PARTICLES]; 
-    float y[NUM_PARTICLES];
-    float z[NUM_PARTICLES];
+    float x[N]; 
+    float y[N];
+    float z[N];
   } hot_fields;
 
   hot_fields pos_data;
@@ -172,12 +172,12 @@ But without reducing too much the locality between accesses to fields of the ori
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
-    float x[N]; 
-    float y[N];
-    float z[N];
+    float x[B]; 
+    float y[B];
+    float z[B];
   } hot_fields;
 
-  hot_fields pos_data[NUM_PARTICLES / N];
+  hot_fields pos_data[ceil(N/B)];
 \end{lstlisting}
 
 \end{frame}
@@ -206,7 +206,7 @@ Note that after all these changes, where we wrote:
 Now we have to write:
 
 \begin{lstlisting}[style=Cstyle]
-  pos_data[i / N].x[i % N]
+  pos_data[i/B].x[i%B]
 \end{lstlisting}
 
 \end{frame}
@@ -221,8 +221,8 @@ Now we have to write:
 	\item Find the basic transformations that combined give rise to the ones we are interested in.\\ \pause
 	\item Formalize a C-like language with arrays, structs and pointers.
 	\begin{itemize}
-		\item On a high-level, to simplify the proofs.
-		\item On a low-level, to be closer to the semantics of C.
+		\item Equipped with a high-level semantics, to simplify the proofs.
+		\item Equipped with a low-level semantics, to be closer to C.
 	\end{itemize} \pause
 	\item Define the transformations and prove their correctness.
 \end{itemize}
