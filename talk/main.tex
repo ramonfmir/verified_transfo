@@ -10,6 +10,8 @@
 
 \begin{document}
 
+% No 'Figure' in captions
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
 
 %******************************************************************************
 %******************************************************************************
@@ -88,7 +90,7 @@ Challenges:
   particle data[N];
   
   for (int i = 0; i < N; i++) {
-    // Some calculation
+    // Some calculation involving data[i]
   }
 \end{lstlisting}
 
@@ -258,23 +260,11 @@ typedef struct {
 typedef int a[N];
 
 // After
-typedef int a'[N / B][B];
+typedef int a'[N/B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.45\linewidth}
-\textbf{\small 3. Adding indirection}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a, b;
-} s;
-
-// After
-typedef struct {
-  int a; int *b;
-} s';
-\end{lstlisting}
-\textbf{\small 4. AoS to SoA}
+\textbf{\small 3. AoS to SoA}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
 typedef struct {
@@ -284,7 +274,19 @@ typedef struct {
 // After
 typedef struct {
   int a[N]; int b[N];
+} s';
+\end{lstlisting}
+\textbf{\small 4. Adding indirection}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a; T b;
 } s;
+
+// After
+typedef struct {
+  int a; T *b;
+} s';
 \end{lstlisting}
 \end{minipage}
 \end{center}
@@ -354,41 +356,11 @@ typedef int a'[N / B][B];
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Basic transformations - indirection}
-
-\begin{center}
-\begin{minipage}{0.3\linewidth}
-\textbf{\small 3. Adding indirection}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a, b;
-} s;
-
-// After
-typedef struct {
-  int a; int *b;
-} s';
-\end{lstlisting}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{figure}
-	\centering
-	\includegraphics[width=0.7\textwidth]{images/indirection}
-\end{figure}
-\end{minipage}
-\end{center}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
 \frametitle{Basic transformations - AoS to SoA}
 
 \begin{center}
 \begin{minipage}{0.3\linewidth}
-\textbf{\small 4. AoS to SoA}
+\textbf{\small 3. AoS to SoA}
 \begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
 // Before
 typedef struct {
@@ -398,13 +370,43 @@ typedef struct {
 // After
 typedef struct {
   int a[N]; int b[N];
-} s;
+} s';
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
 \begin{figure}
 	\centering
 	\includegraphics[width=0.7\textwidth]{images/soa}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - indirection}
+
+\begin{center}
+\begin{minipage}{0.3\linewidth}
+\textbf{\small 4. Adding indirection}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a; T b;
+} s;
+
+// After
+typedef struct {
+  int a; T *b;
+} s';
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/indirection}
 \end{figure}
 \end{minipage}
 \end{center}
@@ -473,13 +475,13 @@ Inductive trm : Type :=
     | prim_struct_get : typ -> field -> prim
     | prim_array_get : typ -> prim
 \end{coqs}
-\pause
+
 Examples of the semantics of our language compared to C:
 
 \begin{Verbatim}[fontsize=\scriptsize]
-   get ptr   : *ptr                     array_access ptr i  : ptr + i
-   set ptr v : *ptr = v                 struct_access ptr f : &(ptr->f)
-   new T     : malloc(sizeof(T))        struct_get s f      : s.f
+   get ptr   => *ptr                   array_access ptr i  => ptr + i
+   set ptr v => *ptr = v               struct_access ptr f => &(ptr->f)
+   new T     => malloc(sizeof(T))      struct_get s f      => s.f
 \end{Verbatim}
 
 where pointers are represented as pairs:
@@ -554,9 +556,9 @@ The allowed types are:
 With their corresponding definitions (analogous to stack and state):
 
 \begin{coqs}
-  Definition gamma : Ctx.ctx typ.
+  Definition gamma := Ctx.ctx typ.
 
-  Definition phi : map loc typ.
+  Definition phi := map loc typ.
 \end{coqs}
 
 \bigskip \pause
