@@ -340,7 +340,7 @@ typedef struct {
 typedef int a[N];
 
 // After
-typedef int a'[N / B][B];
+typedef int a'[N/B][B];
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
@@ -523,7 +523,7 @@ Some crucial definitions:
 And the relation that defines the big-step reduction rules:
 
 \begin{coqs}
-Inductive red : typdefctx -> stack -> state -> trm -> state -> val -> Prop
+  Inductive red : typdefctx -> stack -> state -> trm -> state -> val -> Prop
 \end{coqs}
 
 %\begin{coqs}
@@ -566,7 +566,7 @@ With their corresponding definitions (analogous to stack and state):
 Typing is defined as the following relation:
 
 \begin{coqs}
-Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
+  Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
 \end{coqs}
 
 %\begin{coqs}
@@ -582,15 +582,15 @@ Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
 
 For memory accesses, we know the type of the data being manipulated:
 \begin{coqs}
-Inductive typing_val (C:typdefctx) (f:phi) : val -> typ -> Prop :=
-  | typing_val_abstract_ptr : forall l p T,
-      read_phi C f l p T ->
-      typing_val C f (val_abstract_ptr l p) (typ_ptr T)
+  Inductive typing_val (C:typdefctx) (f:phi) : val -> typ -> Prop :=
+    | typing_val_abstract_ptr : forall l p T,
+        read_phi C f l p T ->
+        typing_val C f (val_abstract_ptr l p) (typ_ptr T)
 
-Inductive typing (C:typdefctx) : gamma -> phi -> trm -> typ -> Prop :=
-  | typing_get : forall G f T t1,
-      typing C G f t1 (typ_ptr T) ->
-      typing C G f (trm_app (prim_get T) (t1::nil)) T
+  Inductive typing (C:typdefctx) : gamma -> phi -> trm -> typ -> Prop :=
+    | typing_get : forall G f T t1,
+        typing C G f t1 (typ_ptr T) ->
+        typing C G f (trm_app (prim_get T) (t1::nil)) T
 \end{coqs}
 
 \bigskip
@@ -674,17 +674,17 @@ These are used to define a transformation for:
 We start with the transformation of the source code. In particular, we look at the struct access case:
 
 \begin{coqs}
-Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
-  | tr_trm_struct_access_group : forall fs Ts fg Tg f op0 t1 op2 op1 t1',
-      gt = make_group_tr Ts fs Tg fg ->
-      f \in fs ->
-      (* The access s.f *)
-      op0 = prim_struct_access (typ_var Ts) f ->
-      (* The access s'.fg.f *)
-      op1 = prim_struct_access (typ_var Ts) fg ->
-      op2 = prim_struct_access (typ_var Tg) f ->
-      tr_trm gt t1 t1' ->
-      tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
+  Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
+    | tr_trm_struct_access_group : forall fs Ts fg Tg f op0 t1 op2 op1 t1',
+        gt = make_group_tr Ts fs Tg fg ->
+        f \in fs ->
+        (* The access s.f *)
+        op0 = prim_struct_access (typ_var Ts) f ->
+        (* The access s'.fg.f *)
+        op1 = prim_struct_access (typ_var Ts) fg ->
+        op2 = prim_struct_access (typ_var Tg) f ->
+        tr_trm gt t1 t1' ->
+        tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
 \end{coqs}
 
 \end{frame}
@@ -697,19 +697,19 @@ Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
 Values need to be changed in the source code. For instance, if we look at the interesting case:
 
 \begin{coqs}
-Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-  | tr_val_struct_group : forall Ts Tg s s' fg fs sg,
-      gt = make_group_tr Ts fs Tg fg ->
-      fs <== dom s ->
-      fg \notindom s ->
-      dom s' = (dom s \- fs) \u \{fg} ->
-      dom sg = fs ->
-      (* Contents of the grouped fields. *)
-      s'[fg] = val_struct (typ_var Tg) sg ->
-      (forall f \indom sg, tr_val gt s[f] sg[f]) ->
-      (* Contents of the rest of the fields. *)      
-      (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
-      tr_val gt (val_struct (typ_var Ts) s) (val_struct (typ_var Ts) s')
+  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+    | tr_val_struct_group : forall Ts Tg s s' fg fs sg,
+        gt = make_group_tr Ts fs Tg fg ->
+        fs <== dom s ->
+        fg \notindom s ->
+        dom s' = (dom s \- fs) \u \{fg} ->
+        dom sg = fs ->
+        (* Contents of the grouped fields. *)
+        s'[fg] = val_struct (typ_var Tg) sg ->
+        (forall f \indom sg, tr_val gt s[f] sg[f]) ->
+        (* Contents of the rest of the fields. *)      
+        (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
+        tr_val gt (val_struct (typ_var Ts) s) (val_struct (typ_var Ts) s')
 \end{coqs}
 
 \bigskip
@@ -727,17 +727,17 @@ And in the stack and the memory so, from \texttt{tr\_val}, we naturally define \
 For accesses, if we look at the interesting case:
 
 \begin{coqs}
-Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
-  | tr_accesses_field_group : forall Ts fs fg Tg f a0 p a1 a2 p',
-      gt = make_group_tr Ts fs Tg fg ->
-      f \in fs ->
-      (* The access s.f *)
-      a0 = access_field (typ_var Ts) f ->
-      (* Becomes s'.fg.f *)
-      a1 = access_field (typ_var Ts) fg ->
-      a2 = access_field (typ_var Tg) f ->
-      tr_accesses gt p p' ->
-      tr_accesses gt (a0::p) (a1::a2::p')
+  Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+    | tr_accesses_field_group : forall Ts fs fg Tg f a0 p a1 a2 p',
+        gt = make_group_tr Ts fs Tg fg ->
+        f \in fs ->
+        (* The access s.f *)
+        a0 = access_field (typ_var Ts) f ->
+        (* Becomes s'.fg.f *)
+        a1 = access_field (typ_var Ts) fg ->
+        a2 = access_field (typ_var Tg) f ->
+        tr_accesses gt p p' ->
+        tr_accesses gt (a0::p) (a1::a2::p')
 \end{coqs}
 
 \bigskip
@@ -745,10 +745,10 @@ Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
 This is used in:
 
 \begin{coqs}
-Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-  | tr_val_abstract_ptr : forall l p p',
-      tr_accesses gt p p' ->
-      tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
+  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+    | tr_val_abstract_ptr : forall l p p',
+        tr_accesses gt p p' ->
+        tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
 \end{coqs}
 
 \end{frame}
@@ -761,20 +761,20 @@ Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
 We `update' the type definitions context as follows:
 
 \begin{coqs}
-Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
-  | tr_typdefctx_intro : forall Tfs Tfs' Tfsg Ts fs Tg fg C C',
-      gt = make_group_tr Ts fs Tg fg ->
-      Ts \indom C ->
-      dom C' = dom C \u \{Tg} ->
-      (* The original map from fields to types. *)
-      C[Ts] = typ_struct Tfs ->
-      (* The map for the new struct and for the grouped fields. *)
-      tr_struct_map gt Tfs Tfs' Tfsg ->
-      C'[Ts] = typ_struct Tfs' ->
-      C'[Tg] = typ_struct Tfsg ->
-      (* The other type variables stay the same. *)      
-      (forall T \indom C \ {Ts}, C'[T] = C[T]) ->
-      tr_typdefctx gt C C'.
+  Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
+    | tr_typdefctx_intro : forall Tfs Tfs' Tfsg Ts fs Tg fg C C',
+        gt = make_group_tr Ts fs Tg fg ->
+        Ts \indom C ->
+        dom C' = dom C \u \{Tg} ->
+        (* The original map from fields to types. *)
+        C[Ts] = typ_struct Tfs ->
+        (* The map for the new struct and for the grouped fields. *)
+        tr_struct_map gt Tfs Tfs' Tfsg ->
+        C'[Ts] = typ_struct Tfs' ->
+        C'[Tg] = typ_struct Tfsg ->
+        (* The other type variables stay the same. *)      
+        (forall T \indom C \ {Ts}, C'[T] = C[T]) ->
+        tr_typdefctx gt C C'.
 \end{coqs}
 
 \end{frame}
@@ -787,18 +787,18 @@ Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
 We need a way of checking that the transformation is well-defined.
 
 \begin{coqs}
-Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
-  | group_tr_ok_intros : forall Tfs Ts fs fg Tg gt C,
-      gt = make_group_tr Ts fs Tg fg ->
-      Ts \indom C ->
-      (* The struct Ts can be transformed. *)
-      C[Ts] = typ_struct Tfs ->
-      Tg \notindom C ->
-      fs <== dom Tfs ->
-      fg \notindom Tfs ->
-      (* Ts doesn't appear anywhere else in the typdefctx. *)
-      (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
-      group_tr_ok gt C.
+  Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
+    | group_tr_ok_intros : forall Tfs Ts fs fg Tg gt C,
+        gt = make_group_tr Ts fs Tg fg ->
+        Ts \indom C ->
+        (* The struct Ts can be transformed. *)
+        C[Ts] = typ_struct Tfs ->
+        Tg \notindom C ->
+        fs <== dom Tfs ->
+        fg \notindom Tfs ->
+        (* Ts doesn't appear anywhere else in the typdefctx. *)
+        (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
+        group_tr_ok gt C.
 \end{coqs}
 
 \bigskip \pause
@@ -819,17 +819,17 @@ Regardless of \texttt{group\_tr}, we need to check that everything is well-forme
 In the end the theorem that we prove is:
 
 \begin{coq}
-Theorem red_tr: forall gt LLC C C' t t' v m,
-  red C LLC empty_stack empty_state t m v ->
-  ~ is_error v ->
-  group_tr_ok gt C ->
-  tr_typdefctx gt C C' ->
-  tr_trm gt t t' ->
-  wf_typdefctx C ->
-  wf_trm C t ->
-  exists v' m',		tr_val gt v v'
-		 /\ tr_state gt m m'
-		 /\ red C' LLC empty_stack empty_state t' m' v'.
+  Theorem red_tr: forall gt LLC C C' t t' v m,
+    red C LLC empty_stack empty_state t m v ->
+    ~ is_error v ->
+    group_tr_ok gt C ->
+    tr_typdefctx gt C C' ->
+    tr_trm gt t t' ->
+    wf_typdefctx C ->
+    wf_trm C t ->
+    exists v' m',		tr_val gt v v'
+	  	   /\ tr_state gt m m'
+		   /\ red C' LLC empty_stack empty_state t' m' v'.
 \end{coq}
 
 \end{frame}
@@ -842,21 +842,21 @@ Theorem red_tr: forall gt LLC C C' t t' v m,
 To make the proof work we strengthen it as follows:
 
 \begin{coq}
-Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
-  red C LLC S m1 t m2 v ->
-  ~ is_error v ->
-  group_tr_ok gt C ->
-  tr_typdefctx gt C C' ->
-  tr_trm gt t t' ->
-  tr_stack gt S S' ->
-  tr_state gt m1 m1' ->
-  wf_typdefctx C ->
-  wf_trm C t ->
-  wf_stack C S ->
-  wf_state C m1 ->
-  exists v' m2',				tr_val gt v v'
-			/\	tr_state gt m2 m2'
-			/\	red C' LLC S' m1' t' m2' v'.
+  Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
+    red C LLC S m1 t m2 v ->
+    ~ is_error v ->
+    group_tr_ok gt C ->
+    tr_typdefctx gt C C' ->
+    tr_trm gt t t' ->
+    tr_stack gt S S' ->
+    tr_state gt m1 m1' ->
+    wf_typdefctx C ->
+    wf_trm C t ->
+    wf_stack C S ->
+    wf_state C m1 ->
+    exists v' m2',				tr_val gt v v'
+			  /\	tr_state gt m2 m2'
+			  /\	red C' LLC S' m1' t' m2' v'.
 \end{coq}
 
 \end{frame}
@@ -916,11 +916,11 @@ We use:
 These are related by the definitions:
 
 \begin{coq}
-Definition nb_tiles (K I J:int) : Prop :=
-  J = I / K + If (I mod K = 0) then 0 else 1.
+  Definition nb_tiles (K I J:int) : Prop :=
+    J = I / K + If (I mod K = 0) then 0 else 1.
 
-Definition tiled_indices (I J K i j k:int) : Prop :=
-		i = j * K + k
+  Definition tiled_indices (I J K i j k:int) : Prop :=	  
+  		i = j * K + k
 	/\	index I i
 	/\	index J j
   	/\	index K k.
@@ -938,7 +938,7 @@ Definition tiled_indices (I J K i j k:int) : Prop :=
 The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by: 
 
 \begin{coqs}
-  forall i j k aK,		tiled_indices I J K i j k ->
+  forall i j k aK,			tiled_indices I J K i j k ->
 				  aJ[j] = (val_array (typ_var Tt) aK) ->
 				  tr_val tt aI[i] aK[k]
 \end{coqs}
@@ -1069,10 +1069,10 @@ There are two sides of this transformation:
 The values in the source code  are all kept the same except for pointers:
 
 \begin{coqs}
-Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop :=
-	| tr_val_abstract_ptr : forall p l o,
-      	tr_ll_accesses C LLC p o ->
-      	tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
+  Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop :=
+	  | tr_val_abstract_ptr : forall p l o,
+          tr_ll_accesses C LLC p o ->
+      	  tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
 \end{coqs}
 
 \bigskip \pause
