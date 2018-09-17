@@ -506,14 +506,8 @@ which would correspond to the address:
 
 Some crucial definitions:
 
-% ARTHUR: remove ll_typedefctx
 \begin{coqs}
   Definition typdefctx := map typvar typ.
-
-  Record ll_typdefctx := make_ll_typdefctx {
-    typvar_sizes				: map typvar size;
-    fields_offsets	: map typvar (map field offset);
-    fields_order				: map typvar (list field) }.
 
   Definition stack := Ctx.ctx val.
 
@@ -1108,6 +1102,15 @@ The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{High-level to low-level transformation - LLC}
+
+The low-level context is defined as follows:
+
+\begin{coqs}
+  Record ll_typdefctx := make_ll_typdefctx {
+    typvar_sizes				: map typvar size;
+    fields_offsets	: map typvar (map field offset);
+    fields_order				: map typvar (list field) }.
+\end{coqs}
 
 We need to ensure coherency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
 
