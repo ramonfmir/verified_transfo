@@ -594,8 +594,8 @@ For memory accesses, we know the type of the data being manipulated:
 %ARTHUR: remove LLC
 Typing result for full execution:
 \begin{coqs}
-  Theorem type_soundness : forall C LLC m t v T,
-    red C LLC empty_stack empty_state t m v ->
+  Theorem type_soundness : forall C m t v T,
+    red C empty_stack empty_state t m v ->
     typing C empty_gamma empty_phi t T ->
     ~ is_error v ->
     exists f, typing_val C f v T
@@ -818,8 +818,8 @@ Regardless of \texttt{group\_tr}, we need to check that everything is well-forme
 In the end the theorem that we prove for full executions is:
 
 \begin{coq}
-  Theorem red_tr: forall gt LLC C C' t t' v m,
-    red C LLC empty_stack empty_state t m v ->
+  Theorem red_tr: forall gt C C' t t' v m,
+    red C empty_stack empty_state t m v ->
     ~ is_error v ->
     group_tr_ok gt C ->
     tr_typdefctx gt C C' ->
@@ -828,7 +828,7 @@ In the end the theorem that we prove for full executions is:
     wf_trm C t ->
     exists v' m',		tr_val gt v v'
 	  	   /\ tr_state gt m m'
-		   /\ red C' LLC empty_stack empty_state t' m' v'.
+		   /\ red C' empty_stack empty_state t' m' v'.
 \end{coq}
 
 \end{frame}
@@ -841,8 +841,8 @@ In the end the theorem that we prove for full executions is:
 To make the proof work we strengthen it as follows:
 
 \begin{coq}
-  Theorem red_tr_ind: forall gt LLC C C' t t' v S S' m1 m1' m2,
-    red C LLC S m1 t m2 v ->
+  Theorem red_tr_ind: forall gt C C' t t' v S S' m1 m1' m2,
+    red C S m1 t m2 v ->
     ~ is_error v ->
     group_tr_ok gt C ->
     tr_typdefctx gt C C' ->
@@ -855,7 +855,7 @@ To make the proof work we strengthen it as follows:
     wf_state C m1 ->
     exists v' m2',				tr_val gt v v'
 			  /\	tr_state gt m2 m2'
-			  /\	red C' LLC S' m1' t' m2' v'.
+			  /\	red C' S' m1' t' m2' v'.
 \end{coq}
 
 \end{frame}
