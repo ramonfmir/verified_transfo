@@ -86,9 +86,9 @@ Challenges:
     // Other fields
     float vx, vy, vz, c, m, v;
   } particle;
-  
+
   particle data[N];
-  
+
   for (int i = 0; i < N; i++) {
     // Some calculation involving data[i]
   }
@@ -114,7 +114,7 @@ Suppose that the calculation uses mainly the position.
     float x, y, z;
     cold_fields *other;
   } particle;
-  
+
   particle data[N];
 \end{lstlisting}
 
@@ -125,7 +125,8 @@ Suppose that the calculation uses mainly the position.
 \begin{frame}[fragile]
 \frametitle{Motivating example - peeling}
 
-Further suppose that the intial `particle' record is not used as part of a dynamic data structure.
+%Further suppose that the intial `particle' record is not used as part of a dynamic data structure.
+Typically, cold fields are stored in a different array.
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
@@ -153,7 +154,7 @@ Now, say that we want to take advantage of vector instructions.
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
-    float x[N]; 
+    float x[N];
     float y[N];
     float z[N];
   } hot_fields;
@@ -174,7 +175,7 @@ But without reducing too much the locality between accesses to fields of the ori
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
-    float x[B]; 
+    float x[B];
     float y[B];
     float z[B];
   } hot_fields;
@@ -199,13 +200,13 @@ In short, the transformations we have seen are:
 
 \bigskip \pause
 
-Note that after all these changes, where we wrote:
+E.g., when applying all these transformations, an access of the form:
 
 \begin{lstlisting}[style=Cstyle]
-  data[i].x 
+  data[i].x
 \end{lstlisting}
 
-Now we have to write:
+becomes:
 
 \begin{lstlisting}[style=Cstyle]
   pos_data[i/B].x[i%B]
@@ -234,7 +235,7 @@ Now we have to write:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Basic transformations}
+\frametitle{Basic transformations -- overview}
 
 \begin{center}
 \begin{minipage}{0.45\linewidth}
@@ -419,9 +420,9 @@ typedef struct {
 \frametitle{Basic transformations - justification}
 
 \begin{itemize}
-	\setlength\itemsep{1.5em}	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group. \pause
-	\item \textbf{Peeling:} Field grouping twice. \pause
-	\item \textbf{AoS to SoA:} AoS to SoA. \pause
+	\setlength\itemsep{1.5em}	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group. %\pause
+	\item \textbf{Peeling:} Field grouping twice. %\pause
+	\item \textbf{AoS to SoA:} AoS to SoA. %\pause
 	\item \textbf{AoS to AoSoA:} Array tiling and then AoS to SoA on the tiles.
 \end{itemize}
 
@@ -487,7 +488,7 @@ Examples of the semantics of our language compared to C:
 where pointers are represented as pairs:
 
 \begin{Verbatim}[fontsize=\scriptsize]
-   (l, [access_field T f, access_array T' i]) 
+   (l, (access_field T f)::(access_array T' i)::nil)
 \end{Verbatim}
 
 which would correspond to the address:
@@ -505,6 +506,7 @@ which would correspond to the address:
 
 Some crucial definitions:
 
+% ARTHUR: remove ll_typedefctx
 \begin{coqs}
   Definition typdefctx := map typvar typ.
 
@@ -512,7 +514,7 @@ Some crucial definitions:
     typvar_sizes				: map typvar size;
     fields_offsets	: map typvar (map field offset);
     fields_order				: map typvar (list field) }.
-  
+
   Definition stack := Ctx.ctx val.
 
   Definition state := map loc val.
@@ -595,13 +597,14 @@ For memory accesses, we know the type of the data being manipulated:
 
 \bigskip
 
+%ARTHUR: remove LLC
 Typing result for full execution:
 \begin{coqs}
   Theorem type_soundness : forall C LLC m t v T,
     red C LLC empty_stack empty_state t m v ->
     typing C empty_gamma empty_phi t T ->
     ~ is_error v ->
-    exists f, typing_val C f v T 
+    exists f, typing_val C f v T
   	  /\  state_typing C f m.
 \end{coqs}
 
@@ -707,7 +710,7 @@ Values need to be changed in the source code. For instance, if we look at the in
         (* Contents of the grouped fields. *)
         s'[fg] = val_struct (typ_var Tg) sg ->
         (forall f \indom sg, tr_val gt s[f] sg[f]) ->
-        (* Contents of the rest of the fields. *)      
+        (* Contents of the rest of the fields. *)
         (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
         tr_val gt (val_struct (typ_var Ts) s) (val_struct (typ_var Ts) s')
 \end{coqs}
@@ -751,6 +754,8 @@ This is used in:
         tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
 \end{coqs}
 
+%ARTHUR: can we add an example path transformed, like in tiling?
+
 \end{frame}
 
 
@@ -772,7 +777,7 @@ We `update' the type definitions context as follows:
         tr_struct_map gt Tfs Tfs' Tfsg ->
         C'[Ts] = typ_struct Tfs' ->
         C'[Tg] = typ_struct Tfsg ->
-        (* The other type variables stay the same. *)      
+        (* The other type variables stay the same. *)
         (forall T \indom C \ {Ts}, C'[T] = C[T]) ->
         tr_typdefctx gt C C'.
 \end{coqs}
@@ -816,7 +821,7 @@ Regardless of \texttt{group\_tr}, we need to check that everything is well-forme
 \begin{frame}[fragile]
 \frametitle{Field grouping - theorem}
 
-In the end the theorem that we prove is:
+In the end the theorem that we prove for full executions is:
 
 \begin{coq}
   Theorem red_tr: forall gt LLC C C' t t' v m,
@@ -919,7 +924,7 @@ These are related by the definitions:
   Definition nb_tiles (K I J:int) : Prop :=
     J = I / K + If (I mod K = 0) then 0 else 1.
 
-  Definition tiled_indices (I J K i j k:int) : Prop :=	  
+  Definition tiled_indices (I J K i j k:int) : Prop :=
   		i = j * K + k
 	/\	index I i
 	/\	index J j
@@ -935,7 +940,7 @@ These are related by the definitions:
 
 
 
-The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by: 
+The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by:
 
 \begin{coqs}
   forall i j k aK,			tiled_indices I J K i j k ->
@@ -945,13 +950,13 @@ The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} i
 
 \bigskip \pause
 
-For the translation accesses and primitive operations, the aim is for all the accesses
+For the translation accesses and primitive operations, the aim is for all the accesses of the form:
 
 \begin{coqs}
   l1 ++ (access_array (typ_var Ta) i)::l2
 \end{coqs}
 
-to be transformed to
+to be transformed to:
 
 \begin{coqs}
   l1 ++ (access_array (typ_var Ta) (i/K))::(access_array (typ_var Tt) (i mod K))::l2.
@@ -970,21 +975,22 @@ For this transformation, we need to know:
 	\item The fields names and types of the struct being changed (\texttt{Tfs}).
 	\item The size of the array (\texttt{K}).
 \end{itemize}
- 
+
 \bigskip \pause
- 
+
 This transformation is similar to array tiling in many ways. One key difference is that the accesses
- 
+of the form:
+
 \begin{coqs}
   l1 ++ (access_array Ta i)::(access_field (typ_struct Tfs) f)::l2
 \end{coqs}
 
-are transformed to
+are transformed to:
 
 \begin{coqs}
   l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
 \end{coqs}
- 
+
 \end{frame}
 
 
@@ -994,6 +1000,7 @@ are transformed to
 
 So far we have presented:
 
+\vspace{1em}
 \begin{itemize}
 	\setlength\itemsep{1.5em}
 	\item Field grouping.
@@ -1003,11 +1010,12 @@ So far we have presented:
 
 \bigskip \pause
 
-The correctness of these is proved! \pause (up to a couple axioms)
+The correctness of these is proved! \\ %\pause
+(up to a couple axioms, e.g., results on the modulo operation)
 
 \bigskip \pause
 
-\textbf{Problem}: This could all be just a hack if we don't link it with a more concrete, CompCert-style semantics...
+\textbf{Problem}: This might all be just a hack if we don't link it with a more concrete, CompCert-style semantics...
 
 \end{frame}
 
@@ -1022,7 +1030,7 @@ The grammar is extended with:
   Inductive val : Type :=
     | val_concrete_ptr : loc -> val
     | val_words : list word -> val.
-  
+
   Inductive prim : Type :=
     | prim_ll_get : typ -> prim
     | prim_ll_set : typ -> prim
@@ -1030,6 +1038,7 @@ The grammar is extended with:
     | prim_ll_access : typ -> prim.
 \end{coqs}
 
+%ARTHUR: move LL_context here
 \bigskip \pause
 
 There are two sides of this transformation:
@@ -1077,13 +1086,13 @@ The values in the source code  are all kept the same except for pointers:
 
 \bigskip \pause
 
-For terms, as an example,
+For terms, as an example, a term:
 
 \begin{coqs}
   trm_app (prim_struct_access T f) (t::nil)
 \end{coqs}
 
-becomes
+gets translated to:
 
 \begin{coqs}
   trm_app (prim_ll_access T[f]) (t'::(field_offset T f)::nil).
@@ -1140,7 +1149,7 @@ Theorem red_tr_warmup : forall C LLC T m a v t' m' v',
 Accomplished goals:
 \\[0.7em]
 \begin{itemize}
-	\setlength\itemsep{1.5em}
+	\setlength\itemsep{1.2em}
 	\item Defined a high-level language convenient to argue about data-layout transformations. \pause
 	\item Found a way to connect it to realistic low-level semantics. \pause
 	\item Basically proved the correctness of:
@@ -1172,18 +1181,26 @@ Next steps:
 \\[0.7em]
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item The transformation `adding indirection'. \pause
-	\item Realizations of the transformations as functions. \pause
-	\item Some arithmetic results in the tiling and low-level transformations. \pause
-	\item Work on loops and add loop transformations.\pause
-	\item Connect the low-level language with CompCert.
+	\item Formalization of the transformation `adding indirection'. %\pause
+	\item Realizations of the transformations as functions. %\pause
+	\item Some arithmetic results in the tiling and low-level transformations. %\pause
+	\item Work on loops and add loop transformations.%\pause
+	\item Connect the low-level language with CompCert (at which level?) % C or Clight?
 \end{itemize}
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
-\frame{\titlepage}
+\begin{frame}[fragile]
+\frametitle{}
+
+\Ce{Thanks!}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+%\frame{\titlepage}
 
 %******************************************************************************
 %******************************************************************************
