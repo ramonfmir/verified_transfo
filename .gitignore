@@ -3,7 +3,8 @@ benchmark/bin/*
 src/_CoqProject
 *[#]*[#]
 *[#]*
-talk/*.pdf
+talk/camus/*.pdf
+talk/gallium/*.pdf
 
 
 # Created by https://www.gitignore.io/api/c,coq,macos
