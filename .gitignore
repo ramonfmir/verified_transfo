@@ -3,6 +3,7 @@ benchmark/bin/*
 src/_CoqProject
 *[#]*[#]
 *[#]*
+talk/*.pdf
 
 
 # Created by https://www.gitignore.io/api/c,coq,macos
@@ -61,6 +62,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+
 ### Coq ###
 .*.aux
 *.cma
@@ -90,6 +92,8 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+*.v.crashcoqide
+
 
 ### macOS ###
 *.DS_Store
@@ -117,6 +121,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
 
 ### LaTeX ###
 ## Core latex/pdflatex auxiliary files:
