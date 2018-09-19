@@ -1,0 +1,1212 @@
+\def\macrosUseBeamer{}
+\input{arthur}
+\input{macros}
+
+\usepackage{fancyvrb}
+\usepackage{graphicx}
+\usepackage{multicol}
+
+\newcommand\tab{$\hphantom{--}$}
+
+\begin{document}
+
+% No 'Figure' in captions
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+\title{Verification of Data Layout Transformations}
+\author[Ramon Fern\'{a}ndez Mir]{{\bf Ramon Fern\'{a}ndez Mir}\\ \vspace{1em} with Arthur Charguéraud }
+\institute[]{Inria}
+\date{17/09/2018}
+
+\frame{\titlepage}
+
+%******************************************************************************
+%\framecontentdocument
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%\section{Separation Logic: a first example}
+
+%\framecontentsection
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/ITER_tokamak}
+\caption{\footnotesize ITER tokamak}
+\label{fig:figure1}
+\end{minipage}%
+\hspace{0.5cm}
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/plasma_physics}
+\caption{\footnotesize Plasma physics}
+\label{fig:figure2}
+\end{minipage}%
+\hspace{0.5cm}
+\begin{minipage}{0.275\linewidth}
+\centering
+\includegraphics[width=\textwidth, height=3.25cm]{images/PIC_simulation}
+\caption{\footnotesize PIC simulation}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+\bigskip
+
+Challenges:
+\begin{itemize}
+	\item Exploit data-level parallelism.
+	\item Use domain-specific knowledge of the code.
+	\item Do it without introducing any bugs.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - initial code}
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    // Position
+    float x, y, z;
+    // Other fields
+    float vx, vy, vz, c, m, v;
+  } particle;
+
+  particle data[N];
+
+  for (int i = 0; i < N; i++) {
+    // Some calculation involving data[i]
+  }
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - splitting}
+
+Suppose that the calculation uses mainly the position.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float vx, vy, vz, c, m, v;
+  } cold_fields;
+
+  typedef struct {
+    float x, y, z;
+    cold_fields *other;
+  } particle;
+
+  particle data[N];
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - peeling}
+
+%Further suppose that the intial `particle' record is not used as part of a dynamic data structure.
+Typically, cold fields are stored in a different array.
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float vx, vy, vz, c, m, v;
+  } cold_fields;
+
+  typedef struct {
+    float x, y, z;
+  } hot_fields;
+
+  cold_fields other_data[N];
+  hot_fields pos_data[N];
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - AoS to SoA}
+
+Now, say that we want to take advantage of vector instructions.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float x[N];
+    float y[N];
+    float z[N];
+  } hot_fields;
+
+  hot_fields pos_data;
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - AoS to AoSoA}
+
+But without reducing too much the locality between accesses to fields of the original struct.
+
+\bigskip
+
+\begin{lstlisting}[style=Cstyle]
+  typedef struct {
+    float x[B];
+    float y[B];
+    float z[B];
+  } hot_fields;
+
+  hot_fields pos_data[ceil(N/B)];
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Motivating example - summary}
+
+In short, the transformations we have seen are:
+\begin{itemize}
+	\item Splitting.
+	\item Peeling.
+	\item AoS to SoA.
+	\item AoS to AoSoA.
+\end{itemize}
+
+\bigskip \pause
+
+E.g., when applying all these transformations, an access of the form:
+
+\begin{lstlisting}[style=Cstyle]
+  data[i].x
+\end{lstlisting}
+
+becomes:
+
+\begin{lstlisting}[style=Cstyle]
+  pos_data[i/B].x[i%B]
+\end{lstlisting}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Project goals}
+
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item Find the basic transformations that combined give rise to the ones we are interested in.\\ \pause
+	\item Formalize a C-like language with arrays, structs and pointers.
+	\begin{itemize}
+		\item Equipped with a high-level semantics, to simplify the proofs.
+		\item Equipped with a low-level semantics, to be closer to C.
+	\end{itemize} \pause
+	\item Define the transformations and prove their correctness.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations -- overview}
+
+\begin{center}
+\begin{minipage}{0.45\linewidth}
+\textbf{\small 1. Field grouping}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b, c;
+} s;
+
+// After
+typedef struct {
+  int b, c;
+} sg;
+
+typedef struct {
+  int a; sg fg;
+} s';
+\end{lstlisting}
+\textbf{\small 2. Array tiling}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef int a[N];
+
+// After
+typedef int a'[N/B][B];
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\textbf{\small 3. AoS to SoA}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b;
+} s;
+
+// After
+typedef struct {
+  int a[N]; int b[N];
+} s';
+\end{lstlisting}
+\textbf{\small 4. Adding indirection}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a; T b;
+} s;
+
+// After
+typedef struct {
+  int a; T *b;
+} s';
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - grouping}
+
+\begin{center}
+\begin{minipage}{0.3\linewidth}
+\textbf{\small 1. Field grouping}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b, c;
+} s;
+
+// After
+typedef struct {
+  int b, c;
+} sg;
+
+typedef struct {
+  int a; sg fg;
+} s';
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/grouping}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - tiling}
+
+\begin{center}
+\begin{minipage}{0.3\linewidth}
+\textbf{\small 2. Array tiling}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef int a[N];
+
+// After
+typedef int a'[N/B][B];
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/tiling}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - AoS to SoA}
+
+\begin{center}
+\begin{minipage}{0.3\linewidth}
+\textbf{\small 3. AoS to SoA}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b;
+} s;
+
+// After
+typedef struct {
+  int a[N]; int b[N];
+} s';
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/soa}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - indirection}
+
+\begin{center}
+\begin{minipage}{0.3\linewidth}
+\textbf{\small 4. Adding indirection}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a; T b;
+} s;
+
+// After
+typedef struct {
+  int a; T *b;
+} s';
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/indirection}
+\end{figure}
+\end{minipage}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Basic transformations - justification}
+
+\begin{itemize}
+	\setlength\itemsep{1.5em}	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group. %\pause
+	\item \textbf{Peeling:} Field grouping twice. %\pause
+	\item \textbf{AoS to SoA:} AoS to SoA. %\pause
+	\item \textbf{AoS to AoSoA:} Array tiling and then AoS to SoA on the tiles.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - values and terms}
+
+\begin{coqs}
+Inductive val : Type :=
+  | val_error : val
+  | val_unit : val
+  | val_uninitialized : val
+  | val_bool : bool -> val
+  | val_int : int -> val
+  | val_double : int -> val
+  | val_abstract_ptr : loc -> accesses -> val
+  | val_array : typ -> list val -> val
+  | val_struct : typ -> map field val -> val
+\end{coqs}
+
+\begin{coqs}
+Inductive trm : Type :=
+  | trm_var : var -> trm
+  | trm_val : val -> trm
+  | trm_if : trm -> trm -> trm -> trm
+  | trm_let : bind -> trm -> trm -> trm
+  | trm_app : prim -> list trm -> trm
+  | trm_while : trm -> trm -> trm
+  | trm_for : var -> val -> val -> trm -> trm.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - primitive operations}
+
+\begin{coqs}
+  Inductive prim : Type :=
+    | prim_binop : binop -> prim
+    | prim_get : typ -> prim
+    | prim_set : typ -> prim
+    | prim_new : typ -> prim
+    | prim_new_array : typ -> prim
+    | prim_struct_access : typ -> field -> prim
+    | prim_array_access : typ -> prim
+    | prim_struct_get : typ -> field -> prim
+    | prim_array_get : typ -> prim
+\end{coqs}
+
+Examples of the semantics of our language compared to C:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   get ptr   => *ptr                   array_access ptr i  => ptr + i
+   set ptr v => *ptr = v               struct_access ptr f => &(ptr->f)
+   new T     => malloc(sizeof(T))      struct_get s f      => s.f
+\end{Verbatim}
+
+where pointers are represented as pairs:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   (l, (access_field T f)::(access_array T' i)::nil)
+\end{Verbatim}
+
+which would correspond to the address:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+   l + field_offset(f) + i * sizeof(T')
+\end{Verbatim}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - semantics}
+
+Some crucial definitions:
+
+\begin{coqs}
+  Definition typdefctx := map typvar typ.
+
+  Definition stack := Ctx.ctx val.
+
+  Definition state := map loc val.
+\end{coqs}
+
+\bigskip \pause
+
+And the relation that defines the big-step reduction rules:
+
+\begin{coqs}
+  Inductive red : typdefctx -> stack -> state -> trm -> state -> val -> Prop
+\end{coqs}
+
+%\begin{coqs}
+%  red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
+%\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - typing}
+
+The allowed types are:
+
+\begin{coqs}
+  Inductive typ : Type :=
+    | typ_unit : typ
+    | typ_int : typ
+    | typ_double : typ
+    | typ_bool : typ
+    | typ_ptr : typ -> typ
+    | typ_array : typ -> option size -> typ
+    | typ_struct : map field typ -> typ
+    | typ_var : typvar -> typ.
+\end{coqs}
+
+\bigskip \pause
+
+With their corresponding definitions (analogous to stack and state):
+
+\begin{coqs}
+  Definition gamma := Ctx.ctx typ.
+
+  Definition phi := map loc typ.
+\end{coqs}
+
+\bigskip \pause
+
+Typing is defined as the following relation:
+
+\begin{coqs}
+  Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
+\end{coqs}
+
+%\begin{coqs}
+%  typing		<==		typdefctx |times 	gamma |times 	phi |times 	trm |times	typ
+%\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Language overview - properties}
+
+For memory accesses, we know the type of the data being manipulated:
+\begin{coqs}
+  Inductive typing_val (C:typdefctx) (f:phi) : val -> typ -> Prop :=
+    | typing_val_abstract_ptr : forall l p T,
+        read_phi C f l p T ->
+        typing_val C f (val_abstract_ptr l p) (typ_ptr T)
+
+  Inductive typing (C:typdefctx) : gamma -> phi -> trm -> typ -> Prop :=
+    | typing_get : forall G f T t1,
+        typing C G f t1 (typ_ptr T) ->
+        typing C G f (trm_app (prim_get T) (t1::nil)) T
+\end{coqs}
+
+\bigskip
+
+%ARTHUR: remove LLC
+Typing result for full execution:
+\begin{coqs}
+  Theorem type_soundness : forall C m t v T,
+    red C empty_stack empty_state t m v ->
+    typing C empty_gamma empty_phi t T ->
+    ~ is_error v ->
+    exists f, typing_val C f v T
+  	  /\  state_typing C f m.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping}
+
+The arguments of the transformation are:
+\begin{minipage}{0.55\linewidth}
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item The struct name \texttt{Ts}.
+	\item The fields \texttt{b} and \texttt{c} (\texttt{fs}).
+	\item The new struct name \texttt{Tg}.
+	\item The new field \texttt{fg}.
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.35\linewidth}
+\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
+// Before
+typedef struct {
+  int a, b, c;
+} Ts;
+
+// After
+typedef struct {
+  int b, c;
+} Tg;
+
+typedef struct {
+  int a; Tg fg;
+} Ts;
+\end{lstlisting}
+\end{minipage}
+
+\bigskip \pause
+
+These are used to define a transformation for:
+\\[0.75em]
+\begin{minipage}{0.3\linewidth}
+
+\begin{itemize}
+	\item terms,
+	\item values,
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.3\linewidth}
+\begin{itemize}
+	\item accesses,
+	\item contexts,
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.3\linewidth}
+\begin{itemize}
+	\item states and
+	\item stacks.
+\end{itemize}
+\end{minipage}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - terms}
+
+We start with the transformation of the source code. In particular, we look at the struct access case:
+
+\begin{coqs}
+  Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
+    | tr_trm_struct_access_group : forall fs Ts fg Tg f op0 t1 op2 op1 t1',
+        gt = make_group_tr Ts fs Tg fg ->
+        f \in fs ->
+        (* The access s.f *)
+        op0 = prim_struct_access (typ_var Ts) f ->
+        (* The access s'.fg.f *)
+        op1 = prim_struct_access (typ_var Ts) fg ->
+        op2 = prim_struct_access (typ_var Tg) f ->
+        tr_trm gt t1 t1' ->
+        tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - values}
+
+Values need to be changed in the source code. For instance, if we look at the interesting case:
+
+\begin{coqs}
+  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+    | tr_val_struct_group : forall Ts Tg s s' fg fs sg,
+        gt = make_group_tr Ts fs Tg fg ->
+        fs <== dom s ->
+        fg \notindom s ->
+        dom s' = (dom s \- fs) \u \{fg} ->
+        dom sg = fs ->
+        (* Contents of the grouped fields. *)
+        s'[fg] = val_struct (typ_var Tg) sg ->
+        (forall f \indom sg, tr_val gt s[f] sg[f]) ->
+        (* Contents of the rest of the fields. *)
+        (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
+        tr_val gt (val_struct (typ_var Ts) s) (val_struct (typ_var Ts) s')
+\end{coqs}
+
+\bigskip
+
+And in the stack and the memory so, from \texttt{tr\_val}, we naturally define \texttt{tr\_stack} and \texttt{tr\_state}.
+
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - accesses}
+
+For accesses, if we look at the interesting case:
+
+\begin{coqs}
+  Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+    | tr_accesses_field_group : forall Ts fs fg Tg f a0 p a1 a2 p',
+        gt = make_group_tr Ts fs Tg fg ->
+        f \in fs ->
+        (* The access s.f *)
+        a0 = access_field (typ_var Ts) f ->
+        (* Becomes s'.fg.f *)
+        a1 = access_field (typ_var Ts) fg ->
+        a2 = access_field (typ_var Tg) f ->
+        tr_accesses gt p p' ->
+        tr_accesses gt (a0::p) (a1::a2::p')
+\end{coqs}
+
+\bigskip
+
+This is used in:
+
+\begin{coqs}
+  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
+    | tr_val_abstract_ptr : forall l p p',
+        tr_accesses gt p p' ->
+        tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
+\end{coqs}
+
+%ARTHUR: can we add an example path transformed, like in tiling?
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - typdefctx}
+
+We `update' the type definitions context as follows:
+
+\begin{coqs}
+  Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
+    | tr_typdefctx_intro : forall Tfs Tfs' Tfsg Ts fs Tg fg C C',
+        gt = make_group_tr Ts fs Tg fg ->
+        Ts \indom C ->
+        dom C' = dom C \u \{Tg} ->
+        (* The original map from fields to types. *)
+        C[Ts] = typ_struct Tfs ->
+        (* The map for the new struct and for the grouped fields. *)
+        tr_struct_map gt Tfs Tfs' Tfsg ->
+        C'[Ts] = typ_struct Tfs' ->
+        C'[Tg] = typ_struct Tfsg ->
+        (* The other type variables stay the same. *)
+        (forall T \indom C \ {Ts}, C'[T] = C[T]) ->
+        tr_typdefctx gt C C'.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - sanity checks}
+
+We need a way of checking that the transformation is well-defined.
+
+\begin{coqs}
+  Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
+    | group_tr_ok_intros : forall Tfs Ts fs fg Tg gt C,
+        gt = make_group_tr Ts fs Tg fg ->
+        Ts \indom C ->
+        (* The struct Ts can be transformed. *)
+        C[Ts] = typ_struct Tfs ->
+        Tg \notindom C ->
+        fs <== dom Tfs ->
+        fg \notindom Tfs ->
+        (* Ts doesn't appear anywhere else in the typdefctx. *)
+        (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
+        group_tr_ok gt C.
+\end{coqs}
+
+\bigskip \pause
+
+Regardless of \texttt{group\_tr}, we need to check that everything is well-formed:
+\begin{itemize}
+	\item The \texttt{typdefctx} is well-formed if the type definitions are productive. \pause
+	\item Terms, values, stacks and states are well-formed if all the types that appear in them exist.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - theorem}
+
+In the end the theorem that we prove for full executions is:
+
+\begin{coq}
+  Theorem red_tr: forall gt C C' t t' v m,
+    red C empty_stack empty_state t m v ->
+    ~ is_error v ->
+    group_tr_ok gt C ->
+    tr_typdefctx gt C C' ->
+    tr_trm gt t t' ->
+    wf_typdefctx C ->
+    wf_trm C t ->
+    exists v' m',		tr_val gt v v'
+	  	   /\ tr_state gt m m'
+		   /\ red C' empty_stack empty_state t' m' v'.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - induction}
+
+To make the proof work we strengthen it as follows:
+
+\begin{coq}
+  Theorem red_tr_ind: forall gt C C' t t' v S S' m1 m1' m2,
+    red C S m1 t m2 v ->
+    ~ is_error v ->
+    group_tr_ok gt C ->
+    tr_typdefctx gt C C' ->
+    tr_trm gt t t' ->
+    tr_stack gt S S' ->
+    tr_state gt m1 m1' ->
+    wf_typdefctx C ->
+    wf_trm C t ->
+    wf_stack C S ->
+    wf_state C m1 ->
+    exists v' m2',				tr_val gt v v'
+			  /\	tr_state gt m2 m2'
+			  /\	red C' S' m1' t' m2' v'.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Array tiling}
+
+We need to know:
+\begin{itemize}
+	\item The name of the array being changed (\texttt{Ta}).
+	\item The new name for the tiles (\texttt{Tt}).
+	\item The size of the tiles (\texttt{K}).
+\end{itemize}
+
+\bigskip \pause
+
+Similarly, we also define:
+\\[0.75em]
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tiling\_tr\_ok},
+	\item \texttt{tr\_typdefctx},
+	\item \texttt{tr\_accesses},
+	\item \texttt{tr\_val},
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tr\_stack},
+	\item \texttt{tr\_state} and
+	\item \texttt{tr\_trm}.
+\end{itemize}
+\end{minipage}
+
+\bigskip
+
+In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/K][i\%K]} where \texttt{t} has type \texttt{typ\_var Ta}.
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Array tiling - some specifics}
+
+We use:
+\begin{itemize}
+	\item \texttt{I} for the length of the original array,
+	\item \texttt{J} for the length of the array of tiles and
+	\item \texttt{K} for the length of the tile.
+\end{itemize}
+
+\bigskip
+
+These are related by the definitions:
+
+\begin{coq}
+  Definition nb_tiles (K I J:int) : Prop :=
+    J = I / K + If (I mod K = 0) then 0 else 1.
+
+  Definition tiled_indices (I J K i j k:int) : Prop :=
+  		i = j * K + k
+	/\	index I i
+	/\	index J j
+  	/\	index K k.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Array tiling - key components}
+
+
+
+The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by:
+
+\begin{coqs}
+  forall i j k aK,			tiled_indices I J K i j k ->
+				  aJ[j] = (val_array (typ_var Tt) aK) ->
+				  tr_val tt aI[i] aK[k]
+\end{coqs}
+
+\bigskip \pause
+
+For the translation accesses and primitive operations, the aim is for all the accesses of the form:
+
+\begin{coqs}
+  l1 ++ (access_array (typ_var Ta) i)::l2
+\end{coqs}
+
+to be transformed to:
+
+\begin{coqs}
+  l1 ++ (access_array (typ_var Ta) (i/K))::(access_array (typ_var Tt) (i mod K))::l2.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{AoS to SoA}
+
+For this transformation, we need to know:
+\begin{itemize}
+	\item The name of the array being changed (\texttt{Ta}).
+	\item The fields names and types of the struct being changed (\texttt{Tfs}).
+	\item The size of the array (\texttt{K}).
+\end{itemize}
+
+\bigskip \pause
+
+This transformation is similar to array tiling in many ways. One key difference is that the accesses
+of the form:
+
+\begin{coqs}
+  l1 ++ (access_array Ta i)::(access_field (typ_struct Tfs) f)::l2
+\end{coqs}
+
+are transformed to:
+
+\begin{coqs}
+  l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level transformations - summary}
+
+So far we have presented:
+
+\vspace{1em}
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item Field grouping.
+	\item Array tiling.
+	\item AoS to SoA.
+\end{itemize}
+
+\bigskip \pause
+
+The correctness of these is proved! \\ %\pause
+(up to a couple axioms, e.g., results on the modulo operation)
+
+\bigskip \pause
+
+\textbf{Problem}: This might all be just a hack if we don't link it with a more concrete, CompCert-style semantics...
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level to low-level transformation}
+
+The grammar is extended with:
+
+\begin{coqs}
+  Inductive val : Type :=
+    | val_concrete_ptr : loc -> val
+    | val_words : list word -> val.
+
+  Inductive prim : Type :=
+    | prim_ll_get : typ -> prim
+    | prim_ll_set : typ -> prim
+    | prim_ll_new : typ -> prim
+    | prim_ll_access : typ -> prim.
+\end{coqs}
+
+%ARTHUR: move LL_context here
+\bigskip \pause
+
+There are two sides of this transformation:
+\begin{itemize}
+	\item The memory.
+	\item The programs.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level to low-level transformation - memory}
+
+\begin{center}
+
+\begin{figure}
+	\includegraphics[scale=0.31]{images/high_level_memory}
+	\caption{High-level memory.}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[scale=0.31]{images/low_level_memory}
+	\caption{Low-level memory.}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level to low-level transformation - program}
+
+The values in the source code  are all kept the same except for pointers:
+
+\begin{coqs}
+  Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop :=
+	  | tr_val_abstract_ptr : forall p l o,
+          tr_ll_accesses C LLC p o ->
+      	  tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
+\end{coqs}
+
+\bigskip \pause
+
+For terms, as an example, a term:
+
+\begin{coqs}
+  trm_app (prim_struct_access T f) (t::nil)
+\end{coqs}
+
+gets translated to:
+
+\begin{coqs}
+  trm_app (prim_ll_access T[f]) (t'::(field_offset T f)::nil).
+\end{coqs}
+
+\bigskip \pause
+
+The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level to low-level transformation - LLC}
+
+The low-level context is defined as follows:
+
+\begin{coqs}
+  Record ll_typdefctx := make_ll_typdefctx {
+    typvar_sizes				: map typvar size;
+    fields_offsets	: map typvar (map field offset);
+    fields_order				: map typvar (list field) }.
+\end{coqs}
+
+We need to ensure coherency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
+
+\begin{itemize}
+	\item The type variable sizes in \texttt{LLC} match with the types in \texttt{C}.
+	\item The field offsets match with the order of the fields and the sizes of each of their types.
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{High-level to low-level transformation - theorem}
+
+The goal is to prove:
+\begin{coq}
+Theorem red_tr_warmup : forall C LLC T m a v t' m' v',
+  red C LLC empty_stack empty_state t m v ->
+  typing C empty_gamma empty_phi t T ->
+  ~ is_error v ->
+  ll_typdefctx_ok C LLC ->
+  tr_trm C LLC a t t' ->
+  wf_typdefctx C ->
+  wf_trm C t ->
+  wf_typ C T ->
+  exists v' m',		tr_state C LLC a m m'
+  		 /\ tr_val C LLC a v v'
+  		 /\ red C LLC empty_stack empty_state t' m' v'.
+\end{coq}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Project extent}
+
+Accomplished goals:
+\\[0.7em]
+\begin{itemize}
+	\setlength\itemsep{1.2em}
+	\item Defined a high-level language convenient to argue about data-layout transformations. \pause
+	\item Found a way to connect it to realistic low-level semantics. \pause
+	\item Basically proved the correctness of:
+	\begin{itemize}
+		\item Field grouping.
+		\item Array tiling.
+		\item AoS to SoA.
+	\end{itemize}
+\end{itemize}
+
+\bigskip \pause
+
+Some statistics:
+\begin{center}
+\begin{tabular}{ccc}
+lines of spec & lines of proof & lines of comments \\
+2723 & 3103 & 668
+\end{tabular}
+\end{center}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Future work}
+
+Next steps:
+\\[0.7em]
+\begin{itemize}
+	\setlength\itemsep{1.5em}
+	\item Formalization of the transformation `adding indirection'. %\pause
+	\item Realizations of the transformations as functions. %\pause
+	\item Some arithmetic results in the tiling and low-level transformations. %\pause
+	\item Work on loops and add loop transformations.%\pause
+	\item Connect the low-level language with CompCert (at which level?) % C or Clight?
+\end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{}
+
+\Ce{Thanks!}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+%\frame{\titlepage}
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+\end{document}
