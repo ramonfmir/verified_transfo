@@ -552,13 +552,18 @@ The correctness of these is proved! \\ %\pause
 
 The grammar is extended with:
 
-
-\bigskip \pause
-
-There are two sides of this transformation:
+\vspace{1em}
 \begin{itemize}
-	\item The memory.
-	\item The programs.
+	\setlength\itemsep{1.5em}
+	\item Low-level pointers.
+\begin{Verbatim}[fontsize=\scriptsize]
+(l, p) => (l, offset(p))
+\end{Verbatim}
+	\item Low-level heap operations.
+\begin{Verbatim}[fontsize=\scriptsize]
+struct_access (l, p) f => struct_ll_access (l, offset(p)) field_offset(f)
+\end{Verbatim}
+	\item A special kind of value that consists of a list of words.
 \end{itemize}
 
 \end{frame}
@@ -584,37 +589,25 @@ There are two sides of this transformation:
 
 \end{frame}
 
-
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-level to low-level transformation - program}
+\frametitle{High-level to low-level transformation - theorem}
 
-The values in the source code  are all kept the same except for pointers:
-
-\begin{coqs}
-  Inductive tr_val (C:typdefctx) (LLC:ll_typdefctx) (a:alpha) : val -> val -> Prop :=
-	  | tr_val_abstract_ptr : forall p l o,
-          tr_ll_accesses C LLC p o ->
-      	  tr_val C LLC a (val_abstract_ptr l p) (val_concrete_ptr (a[l] + o)).
-\end{coqs}
-
-\bigskip \pause
-
-For terms, as an example, a term:
-
-\begin{coqs}
-  trm_app (prim_struct_access T f) (t::nil)
-\end{coqs}
-
-gets translated to:
-
-\begin{coqs}
-  trm_app (prim_ll_access T[f]) (t'::(field_offset T f)::nil).
-\end{coqs}
-
-\bigskip \pause
-
-The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
+The goal is to prove:
+\begin{coq}
+Theorem red_tr_warmup : forall C LLC T m a v t' m' v',
+  red C LLC empty_stack empty_state t m v ->
+  typing C empty_gamma empty_phi t T ->
+  ~ is_error v ->
+  ll_typdefctx_ok C LLC ->
+  tr_trm C LLC a t t' ->
+  wf_typdefctx C ->
+  wf_trm C t ->
+  wf_typ C T ->
+  exists v' m',		tr_state C LLC a m m'
+  		 /\ tr_val C LLC a v v'
+  		 /\ red C LLC empty_stack empty_state t' m' v'.
+\end{coq}
 
 \end{frame}
 
@@ -643,7 +636,7 @@ Some statistics:
 \begin{center}
 \begin{tabular}{ccc}
 lines of spec & lines of proof & lines of comments \\
-2723 & 3103 & 668
+2721 & 3113 & 707
 \end{tabular}
 \end{center}
 
