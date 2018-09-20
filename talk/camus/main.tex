@@ -43,7 +43,7 @@ Why do we care? Take for example GCC.
 \begin{itemize}
 	\item Between 1999 and 2015, over 39.000 bugs were reported.
 	\item Approximately 60\% of the files have some sort of bug.
-	\item The life span of a bug is 200 days.
+	\item The life span of a bug is $\sim$200 days.
 	\item The most buggy file (as of 2015) had 817 different bugs. 
 \end{itemize}
 
@@ -122,34 +122,11 @@ Challenges:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Motivating example - splitting}
-
-Suppose that the calculation uses mainly the position.
-
-\bigskip
-
-\begin{lstlisting}[style=Cstyle]
-  typedef struct {
-    float vx, vy, vz, c, m, v;
-  } cold_fields;
-
-  typedef struct {
-    float x, y, z;
-    cold_fields *other;
-  } particle;
-
-  particle data[N];
-\end{lstlisting}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
 \frametitle{Motivating example - peeling}
 
 %Further suppose that the intial `particle' record is not used as part of a dynamic data structure.
-Typically, cold fields are stored in a different array.
+%Typically, cold fields are stored in a different array.
+Suppose that the calculation uses mainly the position.
 
 \begin{lstlisting}[style=Cstyle]
   typedef struct {
@@ -215,7 +192,6 @@ But without reducing too much the locality between accesses to fields of the ori
 
 In short, the transformations we have seen are:
 \begin{itemize}
-	\item Splitting.
 	\item Peeling.
 	\item AoS to SoA.
 	\item AoS to AoSoA.
@@ -252,68 +228,6 @@ becomes:
 	\end{itemize} \pause
 	\item Define the transformations and prove their correctness.
 \end{itemize}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Basic transformations -- overview}
-
-\begin{center}
-\begin{minipage}{0.45\linewidth}
-\textbf{\small 1. Field grouping}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a, b, c;
-} s;
-
-// After
-typedef struct {
-  int b, c;
-} sg;
-
-typedef struct {
-  int a; sg fg;
-} s';
-\end{lstlisting}
-\textbf{\small 2. Array tiling}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef int a[N];
-
-// After
-typedef int a'[N/B][B];
-\end{lstlisting}
-\end{minipage}%
-\begin{minipage}{0.45\linewidth}
-\textbf{\small 3. AoS to SoA}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a, b;
-} s;
-
-// After
-typedef struct {
-  int a[N]; int b[N];
-} s';
-\end{lstlisting}
-\textbf{\small 4. Adding indirection}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a; T b;
-} s;
-
-// After
-typedef struct {
-  int a; T *b;
-} s';
-\end{lstlisting}
-\end{minipage}
-\end{center}
 
 \end{frame}
 
@@ -408,42 +322,13 @@ typedef struct {
 \end{frame}
 
 
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Basic transformations - indirection}
-
-\begin{center}
-\begin{minipage}{0.3\linewidth}
-\textbf{\small 4. Adding indirection}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a; T b;
-} s;
-
-// After
-typedef struct {
-  int a; T *b;
-} s';
-\end{lstlisting}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{figure}
-	\centering
-	\includegraphics[width=0.7\textwidth]{images/indirection}
-\end{figure}
-\end{minipage}
-\end{center}
-
-\end{frame}
-
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Basic transformations - justification}
 
 \begin{itemize}
-	\setlength\itemsep{1.5em}	\item \textbf{Splitting:} Field grouping and then adding indirection on the field holding the group. %\pause
+	\setlength\itemsep{1.5em}
 	\item \textbf{Peeling:} Field grouping twice. %\pause
 	\item \textbf{AoS to SoA:} AoS to SoA. %\pause
 	\item \textbf{AoS to AoSoA:} Array tiling and then AoS to SoA on the tiles.
@@ -525,6 +410,15 @@ To make the proof work we strengthen it as follows:
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{}
+
+\Ce{Demo}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Array tiling}
 
 We need to know:
@@ -560,65 +454,6 @@ In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/K][i\%
 
 \end{frame}
 
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Array tiling - some specifics}
-
-We use:
-\begin{itemize}
-	\item \texttt{I} for the length of the original array,
-	\item \texttt{J} for the length of the array of tiles and
-	\item \texttt{K} for the length of the tile.
-\end{itemize}
-
-\bigskip
-
-These are related by the definitions:
-
-\begin{coq}
-  Definition nb_tiles (K I J:int) : Prop :=
-    J = I / K + If (I mod K = 0) then 0 else 1.
-
-  Definition tiled_indices (I J K i j k:int) : Prop :=
-  		i = j * K + k
-	/\	index I i
-	/\	index J j
-  	/\	index K k.
-\end{coq}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Array tiling - key components}
-
-
-
-The crucial case of \texttt{tr\_val} from the array \texttt{aI} to \texttt{aJ} is captured by:
-
-\begin{coqs}
-  forall i j k aK,			tiled_indices I J K i j k ->
-				  aJ[j] = (val_array (typ_var Tt) aK) ->
-				  tr_val tt aI[i] aK[k]
-\end{coqs}
-
-\bigskip \pause
-
-For the translation accesses and primitive operations, the aim is for all the accesses of the form:
-
-\begin{coqs}
-  l1 ++ (access_array (typ_var Ta) i)::l2
-\end{coqs}
-
-to be transformed to:
-
-\begin{coqs}
-  l1 ++ (access_array (typ_var Ta) (i/K))::(access_array (typ_var Tt) (i mod K))::l2.
-\end{coqs}
-
-\end{frame}
 
 
 %------------------------------------------------------------------------------
@@ -682,19 +517,7 @@ The correctness of these is proved! \\ %\pause
 
 The grammar is extended with:
 
-\begin{coqs}
-  Inductive val : Type :=
-    | val_concrete_ptr : loc -> val
-    | val_words : list word -> val.
 
-  Inductive prim : Type :=
-    | prim_ll_get : typ -> prim
-    | prim_ll_set : typ -> prim
-    | prim_ll_new : typ -> prim
-    | prim_ll_access : typ -> prim.
-\end{coqs}
-
-%ARTHUR: move LL_context here
 \bigskip \pause
 
 There are two sides of this transformation:
@@ -763,52 +586,6 @@ The semantics of \texttt{prim\_ll\_access} is, in fact, that of addition.
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{High-level to low-level transformation - LLC}
-
-The low-level context is defined as follows:
-
-\begin{coqs}
-  Record ll_typdefctx := make_ll_typdefctx {
-    typvar_sizes				: map typvar size;
-    fields_offsets	: map typvar (map field offset);
-    fields_order				: map typvar (list field) }.
-\end{coqs}
-
-We need to ensure coherency between the type definition context (\texttt{C}) and the low-level context (\texttt{LLC}). In particular:
-
-\begin{itemize}
-	\item The type variable sizes in \texttt{LLC} match with the types in \texttt{C}.
-	\item The field offsets match with the order of the fields and the sizes of each of their types.
-\end{itemize}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{High-level to low-level transformation - theorem}
-
-The goal is to prove:
-\begin{coq}
-Theorem red_tr_warmup : forall C LLC T m a v t' m' v',
-  red C LLC empty_stack empty_state t m v ->
-  typing C empty_gamma empty_phi t T ->
-  ~ is_error v ->
-  ll_typdefctx_ok C LLC ->
-  tr_trm C LLC a t t' ->
-  wf_typdefctx C ->
-  wf_trm C t ->
-  wf_typ C T ->
-  exists v' m',		tr_state C LLC a m m'
-  		 /\ tr_val C LLC a v v'
-  		 /\ red C LLC empty_stack empty_state t' m' v'.
-\end{coq}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
 \frametitle{Project extent}
 
 Accomplished goals:
@@ -817,7 +594,7 @@ Accomplished goals:
 	\setlength\itemsep{1.2em}
 	\item Defined a high-level language convenient to argue about data-layout transformations. \pause
 	\item Found a way to connect it to realistic low-level semantics. \pause
-	\item Basically proved the correctness of:
+	\item Proved the correctness of:
 	\begin{itemize}
 		\item Field grouping.
 		\item Array tiling.
@@ -846,7 +623,6 @@ Next steps:
 \\[0.7em]
 \begin{itemize}
 	\setlength\itemsep{1.5em}
-	\item Formalization of the transformation `adding indirection'. %\pause
 	\item Realizations of the transformations as functions. %\pause
 	\item Some arithmetic results in the tiling and low-level transformations. %\pause
 	\item Work on loops and add loop transformations.%\pause
