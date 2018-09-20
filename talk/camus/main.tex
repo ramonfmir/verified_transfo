@@ -37,6 +37,29 @@
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Software verification}
+
+Why do we care? Take for example GCC.
+\begin{itemize}
+	\item Between 1999 and 2015, over 39.000 bugs were reported.
+	\item Approximately 60\% of the files have some sort of bug.
+	\item The life span of a bug is 200 days.
+	\item The most buggy file (as of 2015) had 817 different bugs. 
+\end{itemize}
+
+\bigskip \pause
+
+\textbf{Solution:} The CompCert verified compiler.
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{images/compcert}
+\end{figure}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Motivating example}
 
 \begin{figure}[H]
@@ -431,382 +454,21 @@ typedef struct {
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Language overview - values and terms}
+\frametitle{Language overview}
 
-\begin{coqs}
-Inductive val : Type :=
-  | val_error : val
-  | val_unit : val
-  | val_uninitialized : val
-  | val_bool : bool -> val
-  | val_int : int -> val
-  | val_double : int -> val
-  | val_abstract_ptr : loc -> accesses -> val
-  | val_array : typ -> list val -> val
-  | val_struct : typ -> map field val -> val
-\end{coqs}
-
-\begin{coqs}
-Inductive trm : Type :=
-  | trm_var : var -> trm
-  | trm_val : val -> trm
-  | trm_if : trm -> trm -> trm -> trm
-  | trm_let : bind -> trm -> trm -> trm
-  | trm_app : prim -> list trm -> trm
-  | trm_while : trm -> trm -> trm
-  | trm_for : var -> val -> val -> trm -> trm.
-\end{coqs}
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{images/compcert_our_language}
+\end{figure}
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Language overview - primitive operations}
+\frametitle{Field grouping - rules}
 
-\begin{coqs}
-  Inductive prim : Type :=
-    | prim_binop : binop -> prim
-    | prim_get : typ -> prim
-    | prim_set : typ -> prim
-    | prim_new : typ -> prim
-    | prim_new_array : typ -> prim
-    | prim_struct_access : typ -> field -> prim
-    | prim_array_access : typ -> prim
-    | prim_struct_get : typ -> field -> prim
-    | prim_array_get : typ -> prim
-\end{coqs}
 
-Examples of the semantics of our language compared to C:
-
-\begin{Verbatim}[fontsize=\scriptsize]
-   get ptr   => *ptr                   array_access ptr i  => ptr + i
-   set ptr v => *ptr = v               struct_access ptr f => &(ptr->f)
-   new T     => malloc(sizeof(T))      struct_get s f      => s.f
-\end{Verbatim}
-
-where pointers are represented as pairs:
-
-\begin{Verbatim}[fontsize=\scriptsize]
-   (l, (access_field T f)::(access_array T' i)::nil)
-\end{Verbatim}
-
-which would correspond to the address:
-
-\begin{Verbatim}[fontsize=\scriptsize]
-   l + field_offset(f) + i * sizeof(T')
-\end{Verbatim}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Language overview - semantics}
-
-Some crucial definitions:
-
-\begin{coqs}
-  Definition typdefctx := map typvar typ.
-
-  Definition stack := Ctx.ctx val.
-
-  Definition state := map loc val.
-\end{coqs}
-
-\bigskip \pause
-
-And the relation that defines the big-step reduction rules:
-
-\begin{coqs}
-  Inductive red : typdefctx -> stack -> state -> trm -> state -> val -> Prop
-\end{coqs}
-
-%\begin{coqs}
-%  red 	<==		typdefctx |times 	ll_typdefctx |times 	stack |times 	state |times 	trm |times	state |times	val
-%\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Language overview - typing}
-
-The allowed types are:
-
-\begin{coqs}
-  Inductive typ : Type :=
-    | typ_unit : typ
-    | typ_int : typ
-    | typ_double : typ
-    | typ_bool : typ
-    | typ_ptr : typ -> typ
-    | typ_array : typ -> option size -> typ
-    | typ_struct : map field typ -> typ
-    | typ_var : typvar -> typ.
-\end{coqs}
-
-\bigskip \pause
-
-With their corresponding definitions (analogous to stack and state):
-
-\begin{coqs}
-  Definition gamma := Ctx.ctx typ.
-
-  Definition phi := map loc typ.
-\end{coqs}
-
-\bigskip \pause
-
-Typing is defined as the following relation:
-
-\begin{coqs}
-  Inductive typing : typdefctx -> gamma -> phi -> trm -> typ -> Prop
-\end{coqs}
-
-%\begin{coqs}
-%  typing		<==		typdefctx |times 	gamma |times 	phi |times 	trm |times	typ
-%\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Language overview - properties}
-
-For memory accesses, we know the type of the data being manipulated:
-\begin{coqs}
-  Inductive typing_val (C:typdefctx) (f:phi) : val -> typ -> Prop :=
-    | typing_val_abstract_ptr : forall l p T,
-        read_phi C f l p T ->
-        typing_val C f (val_abstract_ptr l p) (typ_ptr T)
-
-  Inductive typing (C:typdefctx) : gamma -> phi -> trm -> typ -> Prop :=
-    | typing_get : forall G f T t1,
-        typing C G f t1 (typ_ptr T) ->
-        typing C G f (trm_app (prim_get T) (t1::nil)) T
-\end{coqs}
-
-\bigskip
-
-%ARTHUR: remove LLC
-Typing result for full execution:
-\begin{coqs}
-  Theorem type_soundness : forall C m t v T,
-    red C empty_stack empty_state t m v ->
-    typing C empty_gamma empty_phi t T ->
-    ~ is_error v ->
-    exists f, typing_val C f v T
-  	  /\  state_typing C f m.
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping}
-
-The arguments of the transformation are:
-\begin{minipage}{0.55\linewidth}
-\begin{itemize}
-	\setlength\itemsep{1.5em}
-	\item The struct name \texttt{Ts}.
-	\item The fields \texttt{b} and \texttt{c} (\texttt{fs}).
-	\item The new struct name \texttt{Tg}.
-	\item The new field \texttt{fg}.
-\end{itemize}
-\end{minipage}%
-\begin{minipage}{0.35\linewidth}
-\begin{lstlisting}[style=Cstyle, basicstyle=\scriptsize]
-// Before
-typedef struct {
-  int a, b, c;
-} Ts;
-
-// After
-typedef struct {
-  int b, c;
-} Tg;
-
-typedef struct {
-  int a; Tg fg;
-} Ts;
-\end{lstlisting}
-\end{minipage}
-
-\bigskip \pause
-
-These are used to define a transformation for:
-\\[0.75em]
-\begin{minipage}{0.3\linewidth}
-
-\begin{itemize}
-	\item terms,
-	\item values,
-\end{itemize}
-\end{minipage}%
-\begin{minipage}{0.3\linewidth}
-\begin{itemize}
-	\item accesses,
-	\item contexts,
-\end{itemize}
-\end{minipage}%
-\begin{minipage}{0.3\linewidth}
-\begin{itemize}
-	\item states and
-	\item stacks.
-\end{itemize}
-\end{minipage}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - terms}
-
-We start with the transformation of the source code. In particular, we look at the struct access case:
-
-\begin{coqs}
-  Inductive tr_trm (gt:group_tr) : trm -> trm -> Prop :=
-    | tr_trm_struct_access_group : forall fs Ts fg Tg f op0 t1 op2 op1 t1',
-        gt = make_group_tr Ts fs Tg fg ->
-        f \in fs ->
-        (* The access s.f *)
-        op0 = prim_struct_access (typ_var Ts) f ->
-        (* The access s'.fg.f *)
-        op1 = prim_struct_access (typ_var Ts) fg ->
-        op2 = prim_struct_access (typ_var Tg) f ->
-        tr_trm gt t1 t1' ->
-        tr_trm gt (trm_app op0 (t1::nil)) (trm_app op2 ((trm_app op1 (t1'::nil))::nil))
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - values}
-
-Values need to be changed in the source code. For instance, if we look at the interesting case:
-
-\begin{coqs}
-  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-    | tr_val_struct_group : forall Ts Tg s s' fg fs sg,
-        gt = make_group_tr Ts fs Tg fg ->
-        fs <== dom s ->
-        fg \notindom s ->
-        dom s' = (dom s \- fs) \u \{fg} ->
-        dom sg = fs ->
-        (* Contents of the grouped fields. *)
-        s'[fg] = val_struct (typ_var Tg) sg ->
-        (forall f \indom sg, tr_val gt s[f] sg[f]) ->
-        (* Contents of the rest of the fields. *)
-        (forall f \in dom s \ fs, tr_val gt s[f] s'[f]) ->
-        tr_val gt (val_struct (typ_var Ts) s) (val_struct (typ_var Ts) s')
-\end{coqs}
-
-\bigskip
-
-And in the stack and the memory so, from \texttt{tr\_val}, we naturally define \texttt{tr\_stack} and \texttt{tr\_state}.
-
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - accesses}
-
-For accesses, if we look at the interesting case:
-
-\begin{coqs}
-  Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
-    | tr_accesses_field_group : forall Ts fs fg Tg f a0 p a1 a2 p',
-        gt = make_group_tr Ts fs Tg fg ->
-        f \in fs ->
-        (* The access s.f *)
-        a0 = access_field (typ_var Ts) f ->
-        (* Becomes s'.fg.f *)
-        a1 = access_field (typ_var Ts) fg ->
-        a2 = access_field (typ_var Tg) f ->
-        tr_accesses gt p p' ->
-        tr_accesses gt (a0::p) (a1::a2::p')
-\end{coqs}
-
-\bigskip
-
-This is used in:
-
-\begin{coqs}
-  Inductive tr_val (gt:group_tr) : val -> val -> Prop :=
-    | tr_val_abstract_ptr : forall l p p',
-        tr_accesses gt p p' ->
-        tr_val gt (val_abstract_ptr l p) (val_abstract_ptr l p')
-\end{coqs}
-
-%ARTHUR: can we add an example path transformed, like in tiling?
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - typdefctx}
-
-We `update' the type definitions context as follows:
-
-\begin{coqs}
-  Inductive tr_typdefctx (gt:group_tr) : typdefctx -> typdefctx -> Prop :=
-    | tr_typdefctx_intro : forall Tfs Tfs' Tfsg Ts fs Tg fg C C',
-        gt = make_group_tr Ts fs Tg fg ->
-        Ts \indom C ->
-        dom C' = dom C \u \{Tg} ->
-        (* The original map from fields to types. *)
-        C[Ts] = typ_struct Tfs ->
-        (* The map for the new struct and for the grouped fields. *)
-        tr_struct_map gt Tfs Tfs' Tfsg ->
-        C'[Ts] = typ_struct Tfs' ->
-        C'[Tg] = typ_struct Tfsg ->
-        (* The other type variables stay the same. *)
-        (forall T \indom C \ {Ts}, C'[T] = C[T]) ->
-        tr_typdefctx gt C C'.
-\end{coqs}
-
-\end{frame}
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{Field grouping - sanity checks}
-
-We need a way of checking that the transformation is well-defined.
-
-\begin{coqs}
-  Inductive group_tr_ok : group_tr -> typdefctx -> Prop :=
-    | group_tr_ok_intros : forall Tfs Ts fs fg Tg gt C,
-        gt = make_group_tr Ts fs Tg fg ->
-        Ts \indom C ->
-        (* The struct Ts can be transformed. *)
-        C[Ts] = typ_struct Tfs ->
-        Tg \notindom C ->
-        fs <== dom Tfs ->
-        fg \notindom Tfs ->
-        (* Ts doesn't appear anywhere else in the typdefctx. *)
-        (forall Tv \indom C, ~ free_typvar C Tt C[Tv]) ->
-        group_tr_ok gt C.
-\end{coqs}
-
-\bigskip \pause
-
-Regardless of \texttt{group\_tr}, we need to check that everything is well-formed:
-\begin{itemize}
-	\item The \texttt{typdefctx} is well-formed if the type definitions are productive. \pause
-	\item Terms, values, stacks and states are well-formed if all the types that appear in them exist.
-\end{itemize}
 
 \end{frame}
 
