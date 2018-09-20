@@ -8,6 +8,8 @@
 
 \newcommand\tab{$\hphantom{--}$}
 
+\usepackage{ebproof}
+
 \begin{document}
 
 % No 'Figure' in captions
@@ -341,6 +343,22 @@ typedef struct {
 \begin{frame}[fragile]
 \frametitle{Language overview}
 
+The language includes:
+\begin{itemize}
+	\item Pointers, structs and arrays.
+	\item All the necessary memory operations:
+\end{itemize}
+
+\begin{Verbatim}[fontsize=\scriptsize]
+      get ptr   => *ptr                array_access ptr i  => ptr + i
+      set ptr v => *ptr = v            struct_access ptr f => &(ptr->f)
+      new T     => malloc(sizeof(T))   struct_get s f      => s.f
+\end{Verbatim}
+
+\bigskip
+
+In the big picture:
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=7cm]{images/compcert_our_language}
@@ -351,9 +369,63 @@ typedef struct {
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
+\frametitle{Language overview - rules}
+
+For example, the semantics of get is:
+\begin{center}
+\scalebox{.75}{
+  \begin{prooftree}
+    \Hypo{\langle C, \: S, \: m_1, \: t \rangle \: \Downarrow \: \langle m_2, \: (l, \pi) \rangle}
+    \Hypo{m_2 [ l ][ \pi ]\: = \: v_r}
+    \Hypo{v_r \neq \varnothing}
+    \Infer3{\langle C, \: S, \: m_1, \: get_T \: [t] \rangle \: \Downarrow \: \langle m_2, \: v_r \rangle}
+  \end{prooftree}
+}
+\end{center}
+
+\bigskip
+
+In Coq, this looks like:
+
+\begin{coqs}
+Inductive red (C:typdefctx) : stack -> state -> trm -> state -> val -> Prop :=
+  | red_get : forall l p S T v1 m1 m2 vr,
+      red C S m1 t m (val_abstract_ptr l p) ->
+      read_state m2 l p vr ->
+      ~ is_uninitialized vr ->
+      red C S m1 (trm_app (prim_get T) (t::nil)) m2 vr.
+\end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
 \frametitle{Field grouping - rules}
 
+Similarly, we define rules for our transformation:
+\begin{center}
+\scalebox{.75}{
+  \begin{prooftree}    
+    \Hypo{\pi \: \Rightarrow_{tr} \: \pi'}
+    \Hypo{f \in f_s}
+    \Infer2{[.f] ++ \pi \: \Rightarrow_{tr} \: [.fg\: , \: .f] ++ \pi'}
+  \end{prooftree}
+}
+\end{center}
 
+\bigskip
+
+In Coq, this looks like:
+
+\begin{coqs}
+Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+  | tr_accesses_field_group : forall Tt fs fg Tg f a0 a1 a2 p p',
+      gt = make_group_tr Tt fs Tg fg ->
+      tr_accesses gt p p' ->
+      f \in fs ->
+      tr_accesses gt (access_field Tt f::p) (access_field Tt fg::access_field Tg f::p')
+\end{coqs}
 
 \end{frame}
 
@@ -412,75 +484,38 @@ To make the proof work we strengthen it as follows:
 \begin{frame}[fragile]
 \frametitle{}
 
-\Ce{Demo}
+\Ce{\Large Demo}
 
 \end{frame}
 
 
 %------------------------------------------------------------------------------
 \begin{frame}[fragile]
-\frametitle{Array tiling}
+\frametitle{Array tiling and AoS to SoA}
 
-We need to know:
+\textbf{Array tiling}
 \begin{itemize}
-	\item The name of the array being changed (\texttt{Ta}).
-	\item The new name for the tiles (\texttt{Tt}).
-	\item The size of the tiles (\texttt{K}).
+	\item Takes as arguments:
+	\begin{itemize}
+		\item The name of the array being changed (\texttt{Ta}).
+		\item The name of the tiles (\texttt{Tt}).
+		\item The size of the tiles (\texttt{K}).
+	\end{itemize}
+	\item All the instances of \texttt{t[i]} where \texttt{t} has type \texttt{Ta} become \texttt{t[i/K][i\%K]}.
 \end{itemize}
-
-\bigskip \pause
-
-Similarly, we also define:
-\\[0.75em]
-\begin{minipage}{0.45\linewidth}
-\begin{itemize}
-	\item \texttt{tiling\_tr\_ok},
-	\item \texttt{tr\_typdefctx},
-	\item \texttt{tr\_accesses},
-	\item \texttt{tr\_val},
-\end{itemize}
-\end{minipage}%
-\begin{minipage}{0.45\linewidth}
-\begin{itemize}
-	\item \texttt{tr\_stack},
-	\item \texttt{tr\_state} and
-	\item \texttt{tr\_trm}.
-\end{itemize}
-\end{minipage}
 
 \bigskip
 
-In this case, we change all the instances of \texttt{t[i]} to \texttt{t[i/K][i\%K]} where \texttt{t} has type \texttt{typ\_var Ta}.
-
-\end{frame}
-
-
-
-%------------------------------------------------------------------------------
-\begin{frame}[fragile]
-\frametitle{AoS to SoA}
-
-For this transformation, we need to know:
+\textbf{AoS to SoA}
 \begin{itemize}
-	\item The name of the array being changed (\texttt{Ta}).
-	\item The fields names and types of the struct being changed (\texttt{Tfs}).
-	\item The size of the array (\texttt{K}).
+	\item Takes as arguments:
+	\begin{itemize}
+		\item The name of the array being changed (\texttt{Ta}).
+		\item The fields names and types of the struct being changed (\texttt{Tfs}).
+		\item The size of the array (\texttt{K}).
+	\end{itemize}
+	\item All the instances of \texttt{t[i].f} where \texttt{t} has type \texttt{Ta} become \texttt{t.f[i]}.
 \end{itemize}
-
-\bigskip \pause
-
-This transformation is similar to array tiling in many ways. One key difference is that the accesses
-of the form:
-
-\begin{coqs}
-  l1 ++ (access_array Ta i)::(access_field (typ_struct Tfs) f)::l2
-\end{coqs}
-
-are transformed to:
-
-\begin{coqs}
-  l1 ++ (access_field Ta f)::(access_field (typ_array Tfs[f] K) i)::l2.
-\end{coqs}
 
 \end{frame}
 
@@ -636,7 +671,7 @@ Next steps:
 \begin{frame}[fragile]
 \frametitle{}
 
-\Ce{Thanks!}
+\Ce{\Large Thanks!}
 
 \end{frame}
 
