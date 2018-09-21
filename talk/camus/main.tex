@@ -9,6 +9,7 @@
 \newcommand\tab{$\hphantom{--}$}
 
 \usepackage{ebproof}
+\usepackage{tikz-cd}
 
 \begin{document}
 
@@ -22,7 +23,7 @@
 \title{Verification of Data Layout Transformations}
 \author[Ramon Fern\'{a}ndez Mir]{{\bf Ramon Fern\'{a}ndez Mir}\\ \vspace{1em} with Arthur Charguéraud }
 \institute[]{Inria}
-\date{17/09/2018}
+\date{24/09/2018}
 
 \frame{\titlepage}
 
@@ -56,6 +57,32 @@ Why do we care? Take for example GCC.
 \centering
 \includegraphics[width=7cm]{images/compcert}
 \end{figure}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Software verification - principles}
+
+\begin{minipage}{0.75\linewidth}
+Coq provides a formal language to write mathematical definitions and an environment to write machine-checked proofs.
+\end{minipage}%
+\begin{minipage}{0.2\linewidth}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{images/coq}
+\end{figure}
+\end{minipage}
+
+\bigskip
+
+Key ideas:
+\begin{itemize}
+	\item Language semantics can be expressed with mathematical rules.
+	\item Language properties can be written as theorems.
+	\item We can prove them!
+\end{itemize}
 
 \end{frame}
 
@@ -373,17 +400,13 @@ In the big picture:
 
 For example, the semantics of get is:
 \begin{center}
-\scalebox{.75}{
   \begin{prooftree}
     \Hypo{\langle C, \: S, \: m_1, \: t \rangle \: \Downarrow \: \langle m_2, \: (l, \pi) \rangle}
-    \Hypo{m_2 [ l ][ \pi ]\: = \: v_r}
+    \Hypo{m_2 [ l ]..\pi \: = \: v_r}
     \Hypo{v_r \neq \varnothing}
-    \Infer3{\langle C, \: S, \: m_1, \: get_T \: [t] \rangle \: \Downarrow \: \langle m_2, \: v_r \rangle}
+    \Infer3{\langle C, \: S, \: m_1, \: get_T \: t \rangle \: \Downarrow \: \langle m_2, \: v_r \rangle}
   \end{prooftree}
-}
 \end{center}
-
-\bigskip
 
 In Coq, this looks like:
 
@@ -404,15 +427,19 @@ Inductive red (C:typdefctx) : stack -> state -> trm -> state -> val -> Prop :=
 \frametitle{Field grouping - rules}
 
 Similarly, we define rules for our transformation:
-\begin{center}
-\scalebox{.75}{
-  \begin{prooftree}    
-    \Hypo{\pi \: \Rightarrow_{tr} \: \pi'}
-    \Hypo{f \in f_s}
-    \Infer2{[.f] ++ \pi \: \Rightarrow_{tr} \: [.fg\: , \: .f] ++ \pi'}
-  \end{prooftree}
-}
-\end{center}
+\[
+	\pi := \varnothing \: | \: [i]::\pi \: | \: .f::\pi
+\] 
+\begin{align*}
+	f \notin Fs & \Rightarrow \llbracket .f::\pi \rrbracket = .f:: \llbracket \pi \rrbracket \\
+	f \in Fs    & \Rightarrow \llbracket .f::\pi \rrbracket = .f_g::.f:: \llbracket \pi \rrbracket 
+\end{align*}
+
+%\begin{prooftree}    
+%    \Hypo{\pi \: \Rightarrow_{tr} \: \pi'}
+%    \Hypo{f \in f_s}
+%    \Infer2{[.f] ++ \pi \: \Rightarrow_{tr} \: [.fg\: , \: .f] ++ \pi'}
+%\end{prooftree}
 
 \bigskip
 
@@ -420,12 +447,52 @@ In Coq, this looks like:
 
 \begin{coqs}
 Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
-  | tr_accesses_field_group : forall Tt fs fg Tg f a0 a1 a2 p p',
-      gt = make_group_tr Tt fs Tg fg ->
+  | tr_accesses_field_other : forall T Tt Fs Tg fg p p' f,
+      gt = make_group_tr Tt Fs Tg fg ->
       tr_accesses gt p p' ->
-      f \in fs ->
+      T <> Tt \/ f \notin Fs ->
+      tr_accesses gt ((access_field T f)::p) ((access_field T f)::p').  
+  | tr_accesses_field_group : forall Tt Fs Tg fg p p' f,
+      gt = make_group_tr Tt Fs Tg fg ->
+      tr_accesses gt p p' ->
+      f \in Fs ->
       tr_accesses gt (access_field Tt f::p) (access_field Tt fg::access_field Tg f::p')
 \end{coqs}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Field grouping - simulation}
+
+With a similar pattern we define:
+\\[0.5em]
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tr\_typdefctx},
+	\item \texttt{tr\_state},
+	\item \texttt{tr\_stack},
+\end{itemize}
+\end{minipage}%
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+	\item \texttt{tr\_val} and
+	\item \texttt{tr\_trm}.
+\end{itemize}
+\end{minipage}
+
+\bigskip
+
+The property that we require from the transformation is:
+
+\begin{equation*}
+\begin{tikzcd}[row sep=huge, column sep=huge]
+t \arrow[r,"tr"] \arrow[d, Rightarrow] & \llbracket t \rrbracket \arrow[d, Rightarrow, dashed]
+\\
+v \arrow[r,"tr",dashed] & \llbracket v \rrbracket
+\end{tikzcd}
+\end{equation*}
 
 \end{frame}
 
