@@ -413,7 +413,7 @@ In Coq, this looks like:
 \begin{coqs}
 Inductive red (C:typdefctx) : stack -> state -> trm -> state -> val -> Prop :=
   | red_get : forall l p S T v1 m1 m2 vr,
-      red C S m1 t m (val_abstract_ptr l p) ->
+      red C S m1 t m2 (val_abstract_ptr l p) ->
       read_state m2 l p vr ->
       ~ is_uninitialized vr ->
       red C S m1 (trm_app (prim_get T) (t::nil)) m2 vr.
@@ -431,9 +431,20 @@ Similarly, we define rules for our transformation:
 	\pi := \varnothing \: | \: [i]::\pi \: | \: .f::\pi
 \] 
 \begin{align*}
-	f \notin Fs & \Rightarrow \llbracket .f::\pi \rrbracket = .f:: \llbracket \pi \rrbracket \\
-	f \in Fs    & \Rightarrow \llbracket .f::\pi \rrbracket = .f_g::.f:: \llbracket \pi \rrbracket 
+	\llbracket \varnothing \rrbracket &= \varnothing & \\
+	\llbracket [i]::\pi \rrbracket &= [i]:: \llbracket \pi \rrbracket & \\
+	\llbracket \: .f::\pi \rrbracket &= .f:: \llbracket \pi \rrbracket  & \text{ when } f \notin Fs  \\
+	\llbracket \: .f::\pi \rrbracket &= .f_g::.f:: \llbracket \pi \rrbracket & \text{ when } f \in Fs \\
 \end{align*}
+
+\end{frame}
+
+
+%------------------------------------------------------------------------------
+
+
+\begin{frame}[fragile]
+\frametitle{Field grouping - Coq}
 
 %\begin{prooftree}    
 %    \Hypo{\pi \: \Rightarrow_{tr} \: \pi'}
@@ -447,11 +458,16 @@ In Coq, this looks like:
 
 \begin{coqs}
 Inductive tr_accesses (gt:group_tr) : accesses -> accesses -> Prop :=
+  | tr_accesses_nil :
+      tr_accesses gt nil nil
+  | tr_accesses_array : forall p p' T i,
+      tr_accesses gt p p' ->
+      tr_accesses gt (access_array T i::p) (access_array T i::p')
   | tr_accesses_field_other : forall T Tt Fs Tg fg p p' f,
       gt = make_group_tr Tt Fs Tg fg ->
       tr_accesses gt p p' ->
       T <> Tt \/ f \notin Fs ->
-      tr_accesses gt ((access_field T f)::p) ((access_field T f)::p').  
+      tr_accesses gt (access_field T f::p) (access_field T f::p').  
   | tr_accesses_field_group : forall Tt Fs Tg fg p p' f,
       gt = make_group_tr Tt Fs Tg fg ->
       tr_accesses gt p p' ->
